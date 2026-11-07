@@ -1,0 +1,25 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build output
+bin/
+obj/
+Debug/
+Release/
+
+# User-specific files
+*.userosscache
+*.sln.docstates
+
+# Secrets / local settings
+appsettings.Development.json
+
+# Node / React (for future frontend)
+node_modules/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
