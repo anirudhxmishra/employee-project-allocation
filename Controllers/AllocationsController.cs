@@ -1,9 +1,7 @@
 ﻿
-using EmployeeProjectAllocation.Data;
 using EmployeeProjectAllocation.DTOs.Allocations;
-using EmployeeProjectAllocation.Models;
+using EmployeeProjectAllocation.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EmployeeProjectAllocation.Controllers
 {
@@ -11,32 +9,19 @@ namespace EmployeeProjectAllocation.Controllers
     [ApiController]
     public class AllocationsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IAllocationService _allocationService;
 
-        public AllocationsController(AppDbContext context)
+        public AllocationsController(IAllocationService allocationService)
         {
-            _context = context;
+            _allocationService = allocationService;
         }
 
         // GET: api/Allocations
         [HttpGet]
         public async Task<IActionResult> GetAllAllocations()
         {
-            var allocations = await _context.ProjectAllocations
-                .Select(a => new AllocationResponseDto
-                {
-                    AllocationId = a.AllocationId,
-                    EmployeeCode = a.EmployeeCode,
-                    EmployeeName = a.Employee.FullName,
-                    ProjectId = a.ProjectId,
-                    ProjectName = a.Project.ProjectName,
-                    Role = a.Role,
-                    AllocationDate = a.AllocationDate,
-                    ReleaseDate = a.ReleaseDate,
-                    IsActive = a.IsActive,
-                    AllocatedBy = a.AllocatedBy
-                })
-                .ToListAsync();
+            var allocations =
+                await _allocationService.GetAllAllocationsAsync();
 
             return Ok(allocations);
         }
@@ -45,25 +30,16 @@ namespace EmployeeProjectAllocation.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetAllocationById(int id)
         {
-            var allocation = await _context.ProjectAllocations
-                .Where(a => a.AllocationId == id)
-                .Select(a => new AllocationResponseDto
-                {
-                    AllocationId = a.AllocationId,
-                    EmployeeCode = a.EmployeeCode,
-                    EmployeeName = a.Employee.FullName,
-                    ProjectId = a.ProjectId,
-                    ProjectName = a.Project.ProjectName,
-                    Role = a.Role,
-                    AllocationDate = a.AllocationDate,
-                    ReleaseDate = a.ReleaseDate,
-                    IsActive = a.IsActive,
-                    AllocatedBy = a.AllocatedBy
-                })
-                .FirstOrDefaultAsync();
+            var allocation =
+                await _allocationService.GetAllocationByIdAsync(id);
 
             if (allocation == null)
-                return NotFound(new { message = "Allocation not found." });
+            {
+                return NotFound(new
+                {
+                    message = "Allocation not found."
+                });
+            }
 
             return Ok(allocation);
         }
@@ -73,50 +49,25 @@ namespace EmployeeProjectAllocation.Controllers
         public async Task<IActionResult> CreateAllocation(
             CreateAllocationDto dto)
         {
-            var employeeExists = await _context.Employees
-                .AnyAsync(e => e.EmployeeCode == dto.EmployeeCode);
-
-            if (!employeeExists)
-                return NotFound(new { message = "Employee not found." });
-
-            var project = await _context.Projects
-                .FirstOrDefaultAsync(p => p.ProjectId == dto.ProjectId);
-
-            if (project == null)
-                return NotFound(new { message = "Project not found." });
-
-            if (project.Status != "Active")
-                return BadRequest(new { message = "Project is not active." });
-
-            var alreadyAllocated = await _context.ProjectAllocations
-                .AnyAsync(a =>
-                    a.EmployeeCode == dto.EmployeeCode &&
-                    a.IsActive);
-
-            if (alreadyAllocated)
-                return Conflict(new
-                {
-                    message = "Employee already has an active allocation."
-                });
-
-            var allocation = new ProjectAllocation
+            try
             {
-                EmployeeCode = dto.EmployeeCode,
-                ProjectId = dto.ProjectId,
-                Role = dto.Role.Trim(),
-                AllocationDate = DateTime.UtcNow,
-                IsActive = true,
-                AllocatedBy = dto.AllocatedBy.Trim()
-            };
+                var allocation =
+                    await _allocationService.CreateAllocationAsync(dto);
 
-            _context.ProjectAllocations.Add(allocation);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(
-                nameof(GetAllocationById),
-                new { id = allocation.AllocationId },
-                new { message = "Employee allocated successfully." }
-            );
+                return CreatedAtAction(
+                    nameof(GetAllocationById),
+                    new { id = allocation.AllocationId },
+                    allocation
+                );
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         // GET: api/Allocations/employee/{employeeCode}
@@ -124,29 +75,8 @@ namespace EmployeeProjectAllocation.Controllers
         public async Task<IActionResult> GetEmployeeAllocationHistory(
             string employeeCode)
         {
-            var employeeExists = await _context.Employees
-                .AnyAsync(e => e.EmployeeCode == employeeCode);
-
-            if (!employeeExists)
-                return NotFound(new { message = "Employee not found." });
-
-            var history = await _context.ProjectAllocations
-                .Where(a => a.EmployeeCode == employeeCode)
-                .OrderByDescending(a => a.AllocationDate)
-                .Select(a => new AllocationResponseDto
-                {
-                    AllocationId = a.AllocationId,
-                    EmployeeCode = a.EmployeeCode,
-                    EmployeeName = a.Employee.FullName,
-                    ProjectId = a.ProjectId,
-                    ProjectName = a.Project.ProjectName,
-                    Role = a.Role,
-                    AllocationDate = a.AllocationDate,
-                    ReleaseDate = a.ReleaseDate,
-                    IsActive = a.IsActive,
-                    AllocatedBy = a.AllocatedBy
-                })
-                .ToListAsync();
+            var history =
+                await _allocationService.GetEmployeeAllocationsAsync(employeeCode);
 
             return Ok(history);
         }
@@ -157,30 +87,25 @@ namespace EmployeeProjectAllocation.Controllers
             int id,
             ReleaseAllocationDto dto)
         {
-            var allocation = await _context.ProjectAllocations
-                .FindAsync(id);
+            try
+            {
+                var released =
+                    await _allocationService.ReleaseAllocationAsync(id, dto);
 
-            if (allocation == null)
-                return NotFound(new { message = "Allocation not found." });
-
-            if (!allocation.IsActive)
-                return BadRequest(new
+                if (!released)
                 {
-                    message = "This allocation has already been released."
-                });
+                    return NotFound(new
+                    {
+                        message = "Allocation not found."
+                    });
+                }
 
-            if (dto.ReleaseDate.Date < allocation.AllocationDate.Date)
-                return BadRequest(new
-                {
-                    message = "Release date cannot be earlier than allocation date."
-                });
-
-            allocation.ReleaseDate = dto.ReleaseDate;
-            allocation.IsActive = false;
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }
