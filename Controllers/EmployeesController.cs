@@ -1,8 +1,7 @@
-﻿using EmployeeProjectAllocation.Data;
+﻿
 using EmployeeProjectAllocation.DTOs.Employees;
-using EmployeeProjectAllocation.Models;
+using EmployeeProjectAllocation.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EmployeeProjectAllocation.Controllers
 {
@@ -10,50 +9,29 @@ namespace EmployeeProjectAllocation.Controllers
     [ApiController]
     public class EmployeesController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IEmployeeService _employeeService;
 
-        public EmployeesController(AppDbContext context)
+        public EmployeesController(IEmployeeService employeeService)
         {
-            _context = context;
+            _employeeService = employeeService;
         }
 
         // GET: api/employees
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EmployeeResponseDto>>> GetEmployees()
         {
-            var employees = await _context.Employees
-                .Select(e => new EmployeeResponseDto
-                {
-                    EmployeeCode = e.EmployeeCode,
-                    FullName = e.FullName,
-                    Email = e.Email,
-                    Location = e.Location,
-                    MobileNumber = e.MobileNumber,
-                    TrainingName = e.TrainingName,
-                    TrainingCompletedOn = e.TrainingCompletedOn
-                })
-                .ToListAsync();
+            var employees = await _employeeService.GetAllEmployeesAsync();
 
             return Ok(employees);
         }
 
         // GET: api/employees/85010193
         [HttpGet("{employeeCode}")]
-        public async Task<ActionResult<EmployeeResponseDto>> GetEmployee(string employeeCode)
+        public async Task<ActionResult<EmployeeResponseDto>> GetEmployee(
+            string employeeCode)
         {
-            var employee = await _context.Employees
-                .Where(e => e.EmployeeCode == employeeCode)
-                .Select(e => new EmployeeResponseDto
-                {
-                    EmployeeCode = e.EmployeeCode,
-                    FullName = e.FullName,
-                    Email = e.Email,
-                    Location = e.Location,
-                    MobileNumber = e.MobileNumber,
-                    TrainingName = e.TrainingName,
-                    TrainingCompletedOn = e.TrainingCompletedOn
-                })
-                .FirstOrDefaultAsync();
+            var employee = await _employeeService
+                .GetEmployeeByCodeAsync(employeeCode);
 
             if (employee == null)
                 return NotFound();
@@ -66,48 +44,21 @@ namespace EmployeeProjectAllocation.Controllers
         public async Task<ActionResult<EmployeeResponseDto>> CreateEmployee(
             CreateEmployeeDto dto)
         {
-            if (await _context.Employees.AnyAsync(
-                e => e.EmployeeCode == dto.EmployeeCode))
+            try
             {
-                return Conflict("Employee code already exists.");
+                var employee = await _employeeService
+                    .CreateEmployeeAsync(dto);
+
+                return CreatedAtAction(
+                    nameof(GetEmployee),
+                    new { employeeCode = employee.EmployeeCode },
+                    employee
+                );
             }
-
-            if (await _context.Employees.AnyAsync(
-                e => e.Email == dto.Email))
+            catch (InvalidOperationException ex)
             {
-                return Conflict("Email already exists.");
+                return Conflict(ex.Message);
             }
-
-            var employee = new Employee
-            {
-                EmployeeCode = dto.EmployeeCode,
-                FullName = dto.FullName,
-                Email = dto.Email,
-                Location = dto.Location,
-                MobileNumber = dto.MobileNumber,
-                TrainingName = dto.TrainingName,
-                TrainingCompletedOn = dto.TrainingCompletedOn
-            };
-
-            _context.Employees.Add(employee);
-            await _context.SaveChangesAsync();
-
-            var response = new EmployeeResponseDto
-            {
-                EmployeeCode = employee.EmployeeCode,
-                FullName = employee.FullName,
-                Email = employee.Email,
-                Location = employee.Location,
-                MobileNumber = employee.MobileNumber,
-                TrainingName = employee.TrainingName,
-                TrainingCompletedOn = employee.TrainingCompletedOn
-            };
-
-            return CreatedAtAction(
-                nameof(GetEmployee),
-                new { employeeCode = employee.EmployeeCode },
-                response
-            );
         }
 
         // PUT: api/employees/85010193
@@ -116,51 +67,41 @@ namespace EmployeeProjectAllocation.Controllers
             string employeeCode,
             UpdateEmployeeDto dto)
         {
-            var employee = await _context.Employees.FindAsync(employeeCode);
-
-            if (employee == null)
-                return NotFound();
-
-            if (await _context.Employees.AnyAsync(
-                e => e.Email == dto.Email &&
-                     e.EmployeeCode != employeeCode))
+            try
             {
-                return Conflict("Email already exists.");
+                var updated = await _employeeService
+                    .UpdateEmployeeAsync(employeeCode, dto);
+
+                if (!updated)
+                    return NotFound();
+
+                return NoContent();
             }
-
-            employee.FullName = dto.FullName;
-            employee.Email = dto.Email;
-            employee.Location = dto.Location;
-            employee.MobileNumber = dto.MobileNumber;
-            employee.TrainingName = dto.TrainingName;
-            employee.TrainingCompletedOn = dto.TrainingCompletedOn;
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message);
+            }
         }
 
         // DELETE: api/employees/85010193
         [HttpDelete("{employeeCode}")]
-        public async Task<IActionResult> DeleteEmployee(string employeeCode)
+        public async Task<IActionResult> DeleteEmployee(
+            string employeeCode)
         {
-            var employee = await _context.Employees.FindAsync(employeeCode);
+            try
+            {
+                var deleted = await _employeeService
+                    .DeleteEmployeeAsync(employeeCode);
 
-            if (employee == null)
-                return NotFound();
+                if (!deleted)
+                    return NotFound();
 
-            bool hasAllocations = await _context.ProjectAllocations
-                .AnyAsync(a => a.EmployeeCode == employeeCode);
-
-            if (hasAllocations)
-                return Conflict(
-                    "Cannot delete an employee with allocation history.");
-
-            _context.Employees.Remove(employee);
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message);
+            }
         }
     }
 }

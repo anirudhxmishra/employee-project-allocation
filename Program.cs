@@ -1,9 +1,12 @@
+
 using EmployeeProjectAllocation.Data;
+using EmployeeProjectAllocation.Services.Interfaces;
+using EmployeeProjectAllocation.Services.Implementations;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register controllers
+// Register Controllers
 builder.Services.AddControllers();
 
 // Register Entity Framework Core with SQL Server
@@ -13,13 +16,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+// Register Application Services
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<ISkillService, SkillService>();
+
 // Register Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure HTTP request pipeline
+// Configure HTTP Request Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
