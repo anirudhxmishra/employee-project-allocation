@@ -19,6 +19,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Register Application Services
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ISkillService, SkillService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
 
 // Register Swagger
 builder.Services.AddEndpointsApiExplorer();

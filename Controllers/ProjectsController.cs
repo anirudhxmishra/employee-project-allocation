@@ -1,9 +1,7 @@
 ﻿
-using EmployeeProjectAllocation.Data;
 using EmployeeProjectAllocation.DTOs.Projects;
-using EmployeeProjectAllocation.Models;
+using EmployeeProjectAllocation.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EmployeeProjectAllocation.Controllers
 {
@@ -11,31 +9,18 @@ namespace EmployeeProjectAllocation.Controllers
     [ApiController]
     public class ProjectsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IProjectService _projectService;
 
-        public ProjectsController(AppDbContext context)
+        public ProjectsController(IProjectService projectService)
         {
-            _context = context;
+            _projectService = projectService;
         }
 
         // GET: api/Projects
         [HttpGet]
         public async Task<IActionResult> GetAllProjects()
         {
-            var projects = await _context.Projects
-                .Select(p => new ProjectResponseDto
-                {
-                    ProjectId = p.ProjectId,
-                    ProjectCode = p.ProjectCode,
-                    ProjectName = p.ProjectName,
-                    ClientName = p.ClientName,
-                    Technology = p.Technology,
-                    Location = p.Location,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    Status = p.Status
-                })
-                .ToListAsync();
+            var projects = await _projectService.GetAllProjectsAsync();
 
             return Ok(projects);
         }
@@ -44,21 +29,7 @@ namespace EmployeeProjectAllocation.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProjectById(int id)
         {
-            var project = await _context.Projects
-                .Where(p => p.ProjectId == id)
-                .Select(p => new ProjectResponseDto
-                {
-                    ProjectId = p.ProjectId,
-                    ProjectCode = p.ProjectCode,
-                    ProjectName = p.ProjectName,
-                    ClientName = p.ClientName,
-                    Technology = p.Technology,
-                    Location = p.Location,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    Status = p.Status
-                })
-                .FirstOrDefaultAsync();
+            var project = await _projectService.GetProjectByIdAsync(id);
 
             if (project == null)
                 return NotFound(new { message = "Project not found." });
@@ -70,56 +41,23 @@ namespace EmployeeProjectAllocation.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateProject(CreateProjectDto dto)
         {
-            var projectCode = dto.ProjectCode.Trim();
-
-            var exists = await _context.Projects
-                .AnyAsync(p => p.ProjectCode == projectCode);
-
-            if (exists)
-                return Conflict(new { message = "Project code already exists." });
-
-            if (dto.StartDate.HasValue && dto.EndDate.HasValue &&
-                dto.EndDate < dto.StartDate)
+            try
             {
-                return BadRequest(new
-                {
-                    message = "End date cannot be earlier than start date."
-                });
+                var project = await _projectService.CreateProjectAsync(dto);
+
+                return CreatedAtAction(
+                    nameof(GetProjectById),
+                    new { id = project.ProjectId },
+                    project
+                );
             }
-
-            var project = new Project
+            catch (InvalidOperationException ex)
             {
-                ProjectCode = projectCode,
-                ProjectName = dto.ProjectName.Trim(),
-                ClientName = dto.ClientName.Trim(),
-                Technology = dto.Technology,
-                Location = dto.Location,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate,
-                Status = "Active"
-            };
+                if (ex.Message == "Project code already exists.")
+                    return Conflict(new { message = ex.Message });
 
-            _context.Projects.Add(project);
-            await _context.SaveChangesAsync();
-
-            var response = new ProjectResponseDto
-            {
-                ProjectId = project.ProjectId,
-                ProjectCode = project.ProjectCode,
-                ProjectName = project.ProjectName,
-                ClientName = project.ClientName,
-                Technology = project.Technology,
-                Location = project.Location,
-                StartDate = project.StartDate,
-                EndDate = project.EndDate,
-                Status = project.Status
-            };
-
-            return CreatedAtAction(
-                nameof(GetProjectById),
-                new { id = project.ProjectId },
-                response
-            );
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // PUT: api/Projects/{id}
@@ -128,59 +66,38 @@ namespace EmployeeProjectAllocation.Controllers
             int id,
             UpdateProjectDto dto)
         {
-            var project = await _context.Projects
-                .FindAsync(id);
-
-            if (project == null)
-                return NotFound(new { message = "Project not found." });
-
-            if (dto.StartDate.HasValue && dto.EndDate.HasValue &&
-                dto.EndDate < dto.StartDate)
+            try
             {
-                return BadRequest(new
-                {
-                    message = "End date cannot be earlier than start date."
-                });
+                var updated = await _projectService.UpdateProjectAsync(id, dto);
+
+                if (!updated)
+                    return NotFound(new { message = "Project not found." });
+
+                return NoContent();
             }
-
-            project.ProjectName = dto.ProjectName.Trim();
-            project.ClientName = dto.ClientName.Trim();
-            project.Technology = dto.Technology;
-            project.Location = dto.Location;
-            project.StartDate = dto.StartDate;
-            project.EndDate = dto.EndDate;
-            project.Status = dto.Status.Trim();
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // DELETE: api/Projects/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProject(int id)
         {
-            var project = await _context.Projects
-                .FindAsync(id);
-
-            if (project == null)
-                return NotFound(new { message = "Project not found." });
-
-            var hasAllocations = await _context.ProjectAllocations
-                .AnyAsync(a => a.ProjectId == id);
-
-            if (hasAllocations)
+            try
             {
-                return BadRequest(new
-                {
-                    message = "Cannot delete a project with allocation history."
-                });
+                var deleted = await _projectService.DeleteProjectAsync(id);
+
+                if (!deleted)
+                    return NotFound(new { message = "Project not found." });
+
+                return NoContent();
             }
-
-            _context.Projects.Remove(project);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
     }
 }
