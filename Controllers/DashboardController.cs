@@ -1,8 +1,5 @@
-﻿
-using EmployeeProjectAllocation.Data;
-using EmployeeProjectAllocation.DTOs.Dashboard;
+﻿using EmployeeProjectAllocation.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EmployeeProjectAllocation.Controllers
 {
@@ -10,45 +7,18 @@ namespace EmployeeProjectAllocation.Controllers
     [ApiController]
     public class DashboardController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IDashboardService _dashboardService;
 
-        public DashboardController(AppDbContext context)
+        public DashboardController(IDashboardService dashboardService)
         {
-            _context = context;
+            _dashboardService = dashboardService;
         }
 
         // GET: api/Dashboard
         [HttpGet]
         public async Task<IActionResult> GetDashboardSummary()
         {
-            var totalEmployees = await _context.Employees.CountAsync();
-
-            var allocatedEmployees = await _context.ProjectAllocations
-                .Where(a => a.IsActive)
-                .Select(a => a.EmployeeCode)
-                .Distinct()
-                .CountAsync();
-
-            var totalProjects = await _context.Projects.CountAsync();
-
-            var activeProjects = await _context.Projects
-                .CountAsync(p => p.Status == "Active");
-
-            var totalAllocations = await _context.ProjectAllocations.CountAsync();
-
-            var activeAllocations = await _context.ProjectAllocations
-                .CountAsync(a => a.IsActive);
-
-            var response = new DashboardResponseDto
-            {
-                TotalEmployees = totalEmployees,
-                AllocatedEmployees = allocatedEmployees,
-                AvailableEmployees = totalEmployees - allocatedEmployees,
-                TotalProjects = totalProjects,
-                ActiveProjects = activeProjects,
-                TotalAllocations = totalAllocations,
-                ActiveAllocations = activeAllocations
-            };
+            var response = await _dashboardService.GetDashboardAsync();
 
             return Ok(response);
         }
