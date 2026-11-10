@@ -21,6 +21,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
         {
             return await _context.ProjectAllocations
                 .AsNoTracking()
+                .OrderByDescending(a => a.AllocationDate)
                 .Select(a => new AllocationResponseDto
                 {
                     AllocationId = a.AllocationId,
@@ -63,8 +64,10 @@ namespace EmployeeProjectAllocation.Services.Implementations
         public async Task<AllocationResponseDto> CreateAllocationAsync(
             CreateAllocationDto dto)
         {
+            var employeeCode = dto.EmployeeCode.Trim();
+
             var employee = await _context.Employees
-                .FirstOrDefaultAsync(e => e.EmployeeCode == dto.EmployeeCode);
+                .FirstOrDefaultAsync(e => e.EmployeeCode == employeeCode);
 
             if (employee == null)
             {
@@ -80,17 +83,17 @@ namespace EmployeeProjectAllocation.Services.Implementations
             }
 
             if (!string.Equals(
-                project.Status,
+                project.Status?.Trim(),
                 "Active",
                 StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
-                    "Cannot allocate an employee to an inactive project.");
+                    "Cannot allocate an employee to an inactive or completed project.");
             }
 
             var alreadyAllocated = await _context.ProjectAllocations
                 .AnyAsync(a =>
-                    a.EmployeeCode == dto.EmployeeCode &&
+                    a.EmployeeCode == employeeCode &&
                     a.IsActive);
 
             if (alreadyAllocated)
@@ -101,7 +104,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
 
             var allocation = new ProjectAllocation
             {
-                EmployeeCode = dto.EmployeeCode,
+                EmployeeCode = employeeCode,
                 ProjectId = dto.ProjectId,
                 Role = dto.Role.Trim(),
                 AllocationDate = DateTime.UtcNow,
@@ -132,6 +135,17 @@ namespace EmployeeProjectAllocation.Services.Implementations
         public async Task<List<AllocationResponseDto>> GetEmployeeAllocationsAsync(
             string employeeCode)
         {
+            employeeCode = employeeCode.Trim();
+
+            var employeeExists = await _context.Employees
+                .AnyAsync(e => e.EmployeeCode == employeeCode);
+
+            if (!employeeExists)
+            {
+                throw new KeyNotFoundException(
+                    $"Employee with code '{employeeCode}' was not found.");
+            }
+
             return await _context.ProjectAllocations
                 .AsNoTracking()
                 .Where(a => a.EmployeeCode == employeeCode)

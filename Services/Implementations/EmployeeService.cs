@@ -16,9 +16,12 @@ namespace EmployeeProjectAllocation.Services.Implementations
             _context = context;
         }
 
+        // GET: All employees
         public async Task<List<EmployeeResponseDto>> GetAllEmployeesAsync()
         {
             return await _context.Employees
+                .AsNoTracking()
+                .OrderBy(e => e.EmployeeCode)
                 .Select(e => new EmployeeResponseDto
                 {
                     EmployeeCode = e.EmployeeCode,
@@ -32,10 +35,14 @@ namespace EmployeeProjectAllocation.Services.Implementations
                 .ToListAsync();
         }
 
+        // GET: Employee by code
         public async Task<EmployeeResponseDto?> GetEmployeeByCodeAsync(
             string employeeCode)
         {
+            employeeCode = employeeCode.Trim();
+
             return await _context.Employees
+                .AsNoTracking()
                 .Where(e => e.EmployeeCode == employeeCode)
                 .Select(e => new EmployeeResponseDto
                 {
@@ -50,21 +57,28 @@ namespace EmployeeProjectAllocation.Services.Implementations
                 .FirstOrDefaultAsync();
         }
 
+        // POST: Create employee
         public async Task<EmployeeResponseDto> CreateEmployeeAsync(
             CreateEmployeeDto dto)
         {
             var employeeCode = dto.EmployeeCode.Trim();
             var email = dto.Email.Trim();
 
-            if (await _context.Employees.AnyAsync(
-                e => e.EmployeeCode == employeeCode))
+            var employeeCodeExists = await _context.Employees
+                .AnyAsync(e =>
+                    e.EmployeeCode.ToLower() == employeeCode.ToLower());
+
+            if (employeeCodeExists)
             {
                 throw new InvalidOperationException(
                     "Employee code already exists.");
             }
 
-            if (await _context.Employees.AnyAsync(
-                e => e.Email == email))
+            var emailExists = await _context.Employees
+                .AnyAsync(e =>
+                    e.Email.ToLower() == email.ToLower());
+
+            if (emailExists)
             {
                 throw new InvalidOperationException(
                     "Email already exists.");
@@ -75,31 +89,26 @@ namespace EmployeeProjectAllocation.Services.Implementations
                 EmployeeCode = employeeCode,
                 FullName = dto.FullName.Trim(),
                 Email = email,
-                Location = dto.Location,
-                MobileNumber = dto.MobileNumber,
-                TrainingName = dto.TrainingName,
+                Location = NormalizeOptionalString(dto.Location),
+                MobileNumber = NormalizeOptionalString(dto.MobileNumber),
+                TrainingName = NormalizeOptionalString(dto.TrainingName),
                 TrainingCompletedOn = dto.TrainingCompletedOn
             };
 
             _context.Employees.Add(employee);
+
             await _context.SaveChangesAsync();
 
-            return new EmployeeResponseDto
-            {
-                EmployeeCode = employee.EmployeeCode,
-                FullName = employee.FullName,
-                Email = employee.Email,
-                Location = employee.Location,
-                MobileNumber = employee.MobileNumber,
-                TrainingName = employee.TrainingName,
-                TrainingCompletedOn = employee.TrainingCompletedOn
-            };
+            return MapToResponseDto(employee);
         }
 
+        // PUT: Update employee
         public async Task<bool> UpdateEmployeeAsync(
             string employeeCode,
             UpdateEmployeeDto dto)
         {
+            employeeCode = employeeCode.Trim();
+
             var employee = await _context.Employees
                 .FindAsync(employeeCode);
 
@@ -108,19 +117,22 @@ namespace EmployeeProjectAllocation.Services.Implementations
 
             var email = dto.Email.Trim();
 
-            var emailExists = await _context.Employees.AnyAsync(
-                e => e.Email == email &&
-                     e.EmployeeCode != employeeCode);
+            var emailExists = await _context.Employees
+                .AnyAsync(e =>
+                    e.Email.ToLower() == email.ToLower() &&
+                    e.EmployeeCode != employeeCode);
 
             if (emailExists)
+            {
                 throw new InvalidOperationException(
                     "Email already exists.");
+            }
 
             employee.FullName = dto.FullName.Trim();
             employee.Email = email;
-            employee.Location = dto.Location;
-            employee.MobileNumber = dto.MobileNumber;
-            employee.TrainingName = dto.TrainingName;
+            employee.Location = NormalizeOptionalString(dto.Location);
+            employee.MobileNumber = NormalizeOptionalString(dto.MobileNumber);
+            employee.TrainingName = NormalizeOptionalString(dto.TrainingName);
             employee.TrainingCompletedOn = dto.TrainingCompletedOn;
 
             await _context.SaveChangesAsync();
@@ -128,8 +140,11 @@ namespace EmployeeProjectAllocation.Services.Implementations
             return true;
         }
 
+        // DELETE: Delete employee
         public async Task<bool> DeleteEmployeeAsync(string employeeCode)
         {
+            employeeCode = employeeCode.Trim();
+
             var employee = await _context.Employees
                 .FindAsync(employeeCode);
 
@@ -140,13 +155,39 @@ namespace EmployeeProjectAllocation.Services.Implementations
                 .AnyAsync(a => a.EmployeeCode == employeeCode);
 
             if (hasAllocations)
+            {
                 throw new InvalidOperationException(
                     "Cannot delete an employee with allocation history.");
+            }
 
             _context.Employees.Remove(employee);
+
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        // Normalize optional strings
+        private static string? NormalizeOptionalString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim();
+        }
+
+        // Map entity to response DTO
+        private static EmployeeResponseDto MapToResponseDto(Employee employee)
+        {
+            return new EmployeeResponseDto
+            {
+                EmployeeCode = employee.EmployeeCode,
+                FullName = employee.FullName,
+                Email = employee.Email,
+                Location = employee.Location,
+                MobileNumber = employee.MobileNumber,
+                TrainingName = employee.TrainingName,
+                TrainingCompletedOn = employee.TrainingCompletedOn
+            };
         }
     }
 }

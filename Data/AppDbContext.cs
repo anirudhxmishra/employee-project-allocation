@@ -32,7 +32,7 @@ namespace EmployeeProjectAllocation.Data
                 .HasIndex(e => e.Email)
                 .IsUnique();
 
-            // EmployeeSkill: Composite Primary Key
+            // EmployeeSkill
             modelBuilder.Entity<EmployeeSkill>()
                 .HasKey(es => new { es.EmployeeCode, es.SkillId });
 
@@ -46,6 +46,17 @@ namespace EmployeeProjectAllocation.Data
                 .WithMany(s => s.EmployeeSkills)
                 .HasForeignKey(es => es.SkillId);
 
+            // Skill
+            modelBuilder.Entity<Skill>()
+                .HasKey(s => s.SkillId);
+
+            modelBuilder.Entity<Skill>()
+                .Property(s => s.SkillName)
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<Skill>()
+                .HasIndex(s => s.SkillName)
+                .IsUnique();
             // Project
             modelBuilder.Entity<Project>()
                 .HasKey(p => p.ProjectId);
@@ -67,6 +78,12 @@ namespace EmployeeProjectAllocation.Data
                 .HasOne(a => a.Project)
                 .WithMany()
                 .HasForeignKey(a => a.ProjectId);
+
+            // Only one active allocation per employee
+            modelBuilder.Entity<ProjectAllocation>()
+                .HasIndex(a => a.EmployeeCode)
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
         }
     }
 }

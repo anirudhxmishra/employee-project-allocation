@@ -20,6 +20,8 @@ namespace EmployeeProjectAllocation.Services.Implementations
         public async Task<List<ProjectResponseDto>> GetAllProjectsAsync()
         {
             return await _context.Projects
+                .AsNoTracking()
+                .OrderBy(p => p.ProjectId)
                 .Select(p => new ProjectResponseDto
                 {
                     ProjectId = p.ProjectId,
@@ -39,6 +41,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
         public async Task<ProjectResponseDto?> GetProjectByIdAsync(int id)
         {
             return await _context.Projects
+                .AsNoTracking()
                 .Where(p => p.ProjectId == id)
                 .Select(p => new ProjectResponseDto
                 {
@@ -62,7 +65,8 @@ namespace EmployeeProjectAllocation.Services.Implementations
             var projectCode = dto.ProjectCode.Trim();
 
             var exists = await _context.Projects
-                .AnyAsync(p => p.ProjectCode == projectCode);
+                .AnyAsync(p =>
+                    p.ProjectCode.ToLower() == projectCode.ToLower());
 
             if (exists)
             {
@@ -77,14 +81,15 @@ namespace EmployeeProjectAllocation.Services.Implementations
                 ProjectCode = projectCode,
                 ProjectName = dto.ProjectName.Trim(),
                 ClientName = dto.ClientName.Trim(),
-                Technology = dto.Technology,
-                Location = dto.Location,
+                Technology = NormalizeOptionalString(dto.Technology),
+                Location = NormalizeOptionalString(dto.Location),
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 Status = "Active"
             };
 
             _context.Projects.Add(project);
+
             await _context.SaveChangesAsync();
 
             return MapToResponseDto(project);
@@ -102,13 +107,33 @@ namespace EmployeeProjectAllocation.Services.Implementations
 
             ValidateProjectDates(dto.StartDate, dto.EndDate);
 
+            var status = dto.Status.Trim();
+
+            if (status.Equals("Active", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Active";
+            }
+            else if (status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Inactive";
+            }
+            else if (status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Completed";
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "Invalid project status. Allowed values: Active, Inactive, Completed.");
+            }
+
             project.ProjectName = dto.ProjectName.Trim();
             project.ClientName = dto.ClientName.Trim();
-            project.Technology = dto.Technology;
-            project.Location = dto.Location;
+            project.Technology = NormalizeOptionalString(dto.Technology);
+            project.Location = NormalizeOptionalString(dto.Location);
             project.StartDate = dto.StartDate;
             project.EndDate = dto.EndDate;
-            project.Status = dto.Status;
+            project.Status = status;
 
             await _context.SaveChangesAsync();
 
@@ -133,6 +158,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
             }
 
             _context.Projects.Remove(project);
+
             await _context.SaveChangesAsync();
 
             return true;
@@ -145,11 +171,19 @@ namespace EmployeeProjectAllocation.Services.Implementations
         {
             if (startDate.HasValue &&
                 endDate.HasValue &&
-                endDate.Value < startDate.Value)
+                endDate.Value.Date < startDate.Value.Date)
             {
                 throw new InvalidOperationException(
                     "Project end date cannot be earlier than start date.");
             }
+        }
+
+        // Normalize optional strings
+        private static string? NormalizeOptionalString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim();
         }
 
         // Map Project entity to response DTO

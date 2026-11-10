@@ -27,7 +27,7 @@ namespace EmployeeProjectAllocation.Controllers
         }
 
         // GET: api/Allocations/{id}
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetAllocationById(int id)
         {
             var allocation =
@@ -62,11 +62,17 @@ namespace EmployeeProjectAllocation.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { message = ex.Message });
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(new { message = ex.Message });
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
             }
         }
 
@@ -75,14 +81,24 @@ namespace EmployeeProjectAllocation.Controllers
         public async Task<IActionResult> GetEmployeeAllocationHistory(
             string employeeCode)
         {
-            var history =
-                await _allocationService.GetEmployeeAllocationsAsync(employeeCode);
+            try
+            {
+                var history =
+                    await _allocationService.GetEmployeeAllocationsAsync(employeeCode);
 
-            return Ok(history);
+                return Ok(history);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
         }
 
         // PUT: api/Allocations/release/{id}
-        [HttpPut("release/{id}")]
+        [HttpPut("release/{id:int}")]
         public async Task<IActionResult> ReleaseAllocation(
             int id,
             ReleaseAllocationDto dto)
@@ -104,7 +120,10 @@ namespace EmployeeProjectAllocation.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
             }
         }
     }

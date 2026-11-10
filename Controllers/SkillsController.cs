@@ -82,10 +82,17 @@ namespace EmployeeProjectAllocation.Controllers
         public async Task<IActionResult> GetEmployeeSkills(
             string employeeCode)
         {
-            var skills = await _skillService
-                .GetEmployeeSkillsAsync(employeeCode);
+            try
+            {
+                var skills = await _skillService
+                    .GetEmployeeSkillsAsync(employeeCode);
 
-            return Ok(skills);
+                return Ok(skills);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
     }
 }

@@ -5,7 +5,7 @@ namespace EmployeeProjectAllocation.DTOs.Skills
     public class CreateSkillDto
     {
         [Required]
-        [MaxLength(100)]
+        [StringLength(100, MinimumLength = 2)]
         public string SkillName { get; set; } = string.Empty;
     }
 }

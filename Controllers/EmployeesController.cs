@@ -25,7 +25,7 @@ namespace EmployeeProjectAllocation.Controllers
             return Ok(employees);
         }
 
-        // GET: api/employees/85010193
+        // GET: api/employees/{employeeCode}
         [HttpGet("{employeeCode}")]
         public async Task<ActionResult<EmployeeResponseDto>> GetEmployee(
             string employeeCode)
@@ -34,7 +34,12 @@ namespace EmployeeProjectAllocation.Controllers
                 .GetEmployeeByCodeAsync(employeeCode);
 
             if (employee == null)
-                return NotFound();
+            {
+                return NotFound(new
+                {
+                    message = "Employee not found."
+                });
+            }
 
             return Ok(employee);
         }
@@ -57,11 +62,14 @@ namespace EmployeeProjectAllocation.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(ex.Message);
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
             }
         }
 
-        // PUT: api/employees/85010193
+        // PUT: api/employees/{employeeCode}
         [HttpPut("{employeeCode}")]
         public async Task<IActionResult> UpdateEmployee(
             string employeeCode,
@@ -73,17 +81,25 @@ namespace EmployeeProjectAllocation.Controllers
                     .UpdateEmployeeAsync(employeeCode, dto);
 
                 if (!updated)
-                    return NotFound();
+                {
+                    return NotFound(new
+                    {
+                        message = "Employee not found."
+                    });
+                }
 
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(ex.Message);
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
             }
         }
 
-        // DELETE: api/employees/85010193
+        // DELETE: api/employees/{employeeCode}
         [HttpDelete("{employeeCode}")]
         public async Task<IActionResult> DeleteEmployee(
             string employeeCode)
@@ -94,13 +110,21 @@ namespace EmployeeProjectAllocation.Controllers
                     .DeleteEmployeeAsync(employeeCode);
 
                 if (!deleted)
-                    return NotFound();
+                {
+                    return NotFound(new
+                    {
+                        message = "Employee not found."
+                    });
+                }
 
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(ex.Message);
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
             }
         }
     }

@@ -154,7 +154,9 @@ namespace EmployeeProjectAllocation.Migrations
 
                     b.HasKey("AllocationId");
 
-                    b.HasIndex("EmployeeCode");
+                    b.HasIndex("EmployeeCode")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.HasIndex("ProjectId");
 
@@ -171,9 +173,13 @@ namespace EmployeeProjectAllocation.Migrations
 
                     b.Property<string>("SkillName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("SkillId");
+
+                    b.HasIndex("SkillName")
+                        .IsUnique();
 
                     b.ToTable("Skills");
                 });
@@ -181,13 +187,13 @@ namespace EmployeeProjectAllocation.Migrations
             modelBuilder.Entity("EmployeeProjectAllocation.Models.EmployeeSkill", b =>
                 {
                     b.HasOne("EmployeeProjectAllocation.Models.Employee", "Employee")
-                        .WithMany()
+                        .WithMany("EmployeeSkills")
                         .HasForeignKey("EmployeeCode")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("EmployeeProjectAllocation.Models.Skill", "Skill")
-                        .WithMany()
+                        .WithMany("EmployeeSkills")
                         .HasForeignKey("SkillId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -214,6 +220,16 @@ namespace EmployeeProjectAllocation.Migrations
                     b.Navigation("Employee");
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("EmployeeProjectAllocation.Models.Employee", b =>
+                {
+                    b.Navigation("EmployeeSkills");
+                });
+
+            modelBuilder.Entity("EmployeeProjectAllocation.Models.Skill", b =>
+                {
+                    b.Navigation("EmployeeSkills");
                 });
 #pragma warning restore 612, 618
         }

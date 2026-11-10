@@ -5,19 +5,21 @@ namespace EmployeeProjectAllocation.DTOs.Projects
     public class CreateProjectDto
     {
         [Required]
-        [MaxLength(20)]
+        [StringLength(20, MinimumLength = 2)]
         public string ProjectCode { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(150)]
+        [StringLength(150, MinimumLength = 2)]
         public string ProjectName { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(100)]
+        [StringLength(100, MinimumLength = 2)]
         public string ClientName { get; set; } = string.Empty;
 
+        [StringLength(100)]
         public string? Technology { get; set; }
 
+        [StringLength(100)]
         public string? Location { get; set; }
 
         public DateTime? StartDate { get; set; }

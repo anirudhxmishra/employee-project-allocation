@@ -5,17 +5,19 @@ namespace EmployeeProjectAllocation.DTOs.Allocations
     public class CreateAllocationDto
     {
         [Required]
+        [StringLength(8, MinimumLength = 1)]
         public string EmployeeCode { get; set; } = string.Empty;
 
-        [Required]
+        [Range(1, int.MaxValue,
+            ErrorMessage = "Please provide a valid Project ID.")]
         public int ProjectId { get; set; }
 
         [Required]
-        [MaxLength(100)]
+        [StringLength(100, MinimumLength = 2)]
         public string Role { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(100)]
+        [StringLength(100, MinimumLength = 2)]
         public string AllocatedBy { get; set; } = string.Empty;
     }
 }

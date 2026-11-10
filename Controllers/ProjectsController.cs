@@ -26,13 +26,18 @@ namespace EmployeeProjectAllocation.Controllers
         }
 
         // GET: api/Projects/{id}
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetProjectById(int id)
         {
             var project = await _projectService.GetProjectByIdAsync(id);
 
             if (project == null)
-                return NotFound(new { message = "Project not found." });
+            {
+                return NotFound(new
+                {
+                    message = "Project not found."
+                });
+            }
 
             return Ok(project);
         }
@@ -54,14 +59,16 @@ namespace EmployeeProjectAllocation.Controllers
             catch (InvalidOperationException ex)
             {
                 if (ex.Message == "Project code already exists.")
+                {
                     return Conflict(new { message = ex.Message });
+                }
 
                 return BadRequest(new { message = ex.Message });
             }
         }
 
         // PUT: api/Projects/{id}
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateProject(
             int id,
             UpdateProjectDto dto)
@@ -71,7 +78,12 @@ namespace EmployeeProjectAllocation.Controllers
                 var updated = await _projectService.UpdateProjectAsync(id, dto);
 
                 if (!updated)
-                    return NotFound(new { message = "Project not found." });
+                {
+                    return NotFound(new
+                    {
+                        message = "Project not found."
+                    });
+                }
 
                 return NoContent();
             }
@@ -82,7 +94,7 @@ namespace EmployeeProjectAllocation.Controllers
         }
 
         // DELETE: api/Projects/{id}
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteProject(int id)
         {
             try
@@ -90,7 +102,12 @@ namespace EmployeeProjectAllocation.Controllers
                 var deleted = await _projectService.DeleteProjectAsync(id);
 
                 if (!deleted)
-                    return NotFound(new { message = "Project not found." });
+                {
+                    return NotFound(new
+                    {
+                        message = "Project not found."
+                    });
+                }
 
                 return NoContent();
             }

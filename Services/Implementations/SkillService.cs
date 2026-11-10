@@ -20,6 +20,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
         public async Task<List<SkillResponseDto>> GetAllSkillsAsync()
         {
             return await _context.Skills
+                .AsNoTracking()
                 .Select(s => new SkillResponseDto
                 {
                     SkillId = s.SkillId,
@@ -35,7 +36,8 @@ namespace EmployeeProjectAllocation.Services.Implementations
             var skillName = dto.SkillName.Trim();
 
             var skillExists = await _context.Skills
-                .AnyAsync(s => s.SkillName == skillName);
+                .AnyAsync(s =>
+                    s.SkillName.ToLower() == skillName.ToLower());
 
             if (skillExists)
             {
@@ -102,7 +104,6 @@ namespace EmployeeProjectAllocation.Services.Implementations
             if (newAssignments.Count > 0)
             {
                 _context.EmployeeSkills.AddRange(newAssignments);
-
                 await _context.SaveChangesAsync();
             }
 
@@ -113,7 +114,17 @@ namespace EmployeeProjectAllocation.Services.Implementations
         public async Task<List<SkillResponseDto>> GetEmployeeSkillsAsync(
             string employeeCode)
         {
+            var employeeExists = await _context.Employees
+                .AnyAsync(e => e.EmployeeCode == employeeCode);
+
+            if (!employeeExists)
+            {
+                throw new KeyNotFoundException(
+                    $"Employee with code '{employeeCode}' was not found.");
+            }
+
             return await _context.EmployeeSkills
+                .AsNoTracking()
                 .Where(es => es.EmployeeCode == employeeCode)
                 .Select(es => new SkillResponseDto
                 {
