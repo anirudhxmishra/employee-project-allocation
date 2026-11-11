@@ -11,6 +11,7 @@
         public string ClientName { get; set; } = string.Empty;
 
         public string? Technology { get; set; }
+        public int RequiredEmployees { get; set; }
 
         public string? Location { get; set; }
 

@@ -15,6 +15,8 @@ namespace EmployeeProjectAllocation.Data
         public DbSet<EmployeeSkill> EmployeeSkills { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<ProjectAllocation> ProjectAllocations { get; set; }
+        public DbSet<ProjectSkill> ProjectSkills { get; set; }
+        public DbSet<ProjectCandidate> ProjectCandidates { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -72,18 +74,73 @@ namespace EmployeeProjectAllocation.Data
             modelBuilder.Entity<ProjectAllocation>()
                 .HasOne(a => a.Employee)
                 .WithMany()
-                .HasForeignKey(a => a.EmployeeCode);
+                .HasForeignKey(a => a.EmployeeCode)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ProjectAllocation>()
                 .HasOne(a => a.Project)
                 .WithMany()
-                .HasForeignKey(a => a.ProjectId);
+                .HasForeignKey(a => a.ProjectId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Only one active allocation per employee
             modelBuilder.Entity<ProjectAllocation>()
                 .HasIndex(a => a.EmployeeCode)
                 .IsUnique()
                 .HasFilter("[IsActive] = 1");
+
+            // ProjectSkill
+            modelBuilder.Entity<ProjectSkill>()
+                .HasKey(ps => new { ps.ProjectId, ps.SkillId });
+
+            modelBuilder.Entity<ProjectSkill>()
+                .HasOne(ps => ps.Project)
+                .WithMany()
+                .HasForeignKey(ps => ps.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProjectSkill>()
+                .HasOne(ps => ps.Skill)
+                .WithMany()
+                .HasForeignKey(ps => ps.SkillId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ProjectCandidate
+            modelBuilder.Entity<ProjectCandidate>()
+                .HasKey(pc => pc.CandidateId);
+
+            modelBuilder.Entity<ProjectCandidate>()
+                .Property(pc => pc.EmployeeCode)
+                .HasMaxLength(8)
+                .IsRequired();
+
+            modelBuilder.Entity<ProjectCandidate>()
+                .Property(pc => pc.Status)
+                .HasMaxLength(30)
+                .IsRequired();
+
+            modelBuilder.Entity<ProjectCandidate>()
+                .Property(pc => pc.Remarks)
+                .HasMaxLength(500);
+
+            // Employee relationship
+            modelBuilder.Entity<ProjectCandidate>()
+                .HasOne(pc => pc.Employee)
+                .WithMany()
+                .HasForeignKey(pc => pc.EmployeeCode)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Project relationship
+            modelBuilder.Entity<ProjectCandidate>()
+                .HasOne(pc => pc.Project)
+                .WithMany()
+                .HasForeignKey(pc => pc.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Prevent duplicate candidate records for the same project
+            modelBuilder.Entity<ProjectCandidate>()
+                .HasIndex(pc => new { pc.EmployeeCode, pc.ProjectId })
+                .IsUnique();
         }
     }
 }

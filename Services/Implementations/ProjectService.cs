@@ -32,6 +32,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
                     Location = p.Location,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
+                    RequiredEmployees = p.RequiredEmployees,
                     Status = p.Status
                 })
                 .ToListAsync();
@@ -53,6 +54,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
                     Location = p.Location,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
+                    RequiredEmployees = p.RequiredEmployees,
                     Status = p.Status
                 })
                 .FirstOrDefaultAsync();
@@ -85,6 +87,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
                 Location = NormalizeOptionalString(dto.Location),
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
+                RequiredEmployees = dto.RequiredEmployees,
                 Status = "Active"
             };
 
@@ -106,6 +109,16 @@ namespace EmployeeProjectAllocation.Services.Implementations
                 return false;
 
             ValidateProjectDates(dto.StartDate, dto.EndDate);
+
+            // Prevent reducing project capacity below active allocations
+            var activeAllocationCount = await _context.ProjectAllocations
+                .CountAsync(a => a.ProjectId == id && a.IsActive);
+
+            if (dto.RequiredEmployees < activeAllocationCount)
+            {
+                throw new InvalidOperationException(
+                    $"Required employees cannot be less than the current active allocation count ({activeAllocationCount}).");
+            }
 
             var status = dto.Status.Trim();
 
@@ -133,6 +146,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
             project.Location = NormalizeOptionalString(dto.Location);
             project.StartDate = dto.StartDate;
             project.EndDate = dto.EndDate;
+            project.RequiredEmployees = dto.RequiredEmployees;
             project.Status = status;
 
             await _context.SaveChangesAsync();
@@ -199,6 +213,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
                 Location = project.Location,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
+                RequiredEmployees = project.RequiredEmployees,
                 Status = project.Status
             };
         }

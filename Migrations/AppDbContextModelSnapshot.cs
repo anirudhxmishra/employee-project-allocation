@@ -90,7 +90,6 @@ namespace EmployeeProjectAllocation.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Location")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ProjectCode")
@@ -101,6 +100,9 @@ namespace EmployeeProjectAllocation.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("RequiredEmployees")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -109,7 +111,6 @@ namespace EmployeeProjectAllocation.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Technology")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ProjectId");
@@ -163,6 +164,62 @@ namespace EmployeeProjectAllocation.Migrations
                     b.ToTable("ProjectAllocations");
                 });
 
+            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectCandidate", b =>
+                {
+                    b.Property<int>("CandidateId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CandidateId"));
+
+                    b.Property<string>("EmployeeCode")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<DateTime?>("InterviewDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("ShortlistedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("CandidateId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("EmployeeCode", "ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("ProjectCandidates");
+                });
+
+            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectSkill", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SkillId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProjectId", "SkillId");
+
+                    b.HasIndex("SkillId");
+
+                    b.ToTable("ProjectSkills");
+                });
+
             modelBuilder.Entity("EmployeeProjectAllocation.Models.Skill", b =>
                 {
                     b.Property<int>("SkillId")
@@ -208,7 +265,26 @@ namespace EmployeeProjectAllocation.Migrations
                     b.HasOne("EmployeeProjectAllocation.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeCode")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EmployeeProjectAllocation.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectCandidate", b =>
+                {
+                    b.HasOne("EmployeeProjectAllocation.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeCode")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("EmployeeProjectAllocation.Models.Project", "Project")
@@ -220,6 +296,25 @@ namespace EmployeeProjectAllocation.Migrations
                     b.Navigation("Employee");
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectSkill", b =>
+                {
+                    b.HasOne("EmployeeProjectAllocation.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EmployeeProjectAllocation.Models.Skill", "Skill")
+                        .WithMany()
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Skill");
                 });
 
             modelBuilder.Entity("EmployeeProjectAllocation.Models.Employee", b =>

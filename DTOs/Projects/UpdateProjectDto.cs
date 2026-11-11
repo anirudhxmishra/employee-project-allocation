@@ -28,5 +28,9 @@ namespace EmployeeProjectAllocation.DTOs.Projects
             ErrorMessage = "Status must be Active, Inactive, or Completed."
         )]
         public string Status { get; set; } = "Active";
+        [Required]
+
+        [Range(1, int.MaxValue)]
+        public int RequiredEmployees { get; set; } = 1;
     }
 }

@@ -19,6 +19,10 @@ namespace EmployeeProjectAllocation.DTOs.Projects
         [StringLength(100)]
         public string? Technology { get; set; }
 
+        [Required]
+        [Range(1, int.MaxValue)]
+        public int RequiredEmployees { get; set; } = 1;
+
         [StringLength(100)]
         public string? Location { get; set; }
 
