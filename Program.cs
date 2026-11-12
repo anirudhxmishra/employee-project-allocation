@@ -29,6 +29,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IProjectSkillService, ProjectSkillService>();
 builder.Services.AddScoped<IResourcePoolService, ResourcePoolService>();
 builder.Services.AddScoped<IProjectCandidateService, ProjectCandidateService>();
+builder.Services.AddScoped<IProjectHiringSummaryService, ProjectHiringSummaryService>();
 
 // Register Swagger
 builder.Services.AddEndpointsApiExplorer();
