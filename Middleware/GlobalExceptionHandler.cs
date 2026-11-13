@@ -26,19 +26,39 @@ namespace EmployeeProjectAllocation.Middleware
             var (statusCode, title, detail) = exception switch
             {
                 KeyNotFoundException =>
-                    (StatusCodes.Status404NotFound,
-                     "Resource Not Found",
-                     "The requested resource was not found."),
+                    (
+                        StatusCodes.Status404NotFound,
+                        "Resource Not Found",
+                        "The requested resource was not found."
+                    ),
+
+                InvalidOperationException =>
+                    (
+                        StatusCodes.Status409Conflict,
+                        "Operation Conflict",
+                        exception.Message
+                    ),
+
+                ArgumentException =>
+                    (
+                        StatusCodes.Status400BadRequest,
+                        "Invalid Request",
+                        "The supplied request contains invalid arguments."
+                    ),
 
                 DbUpdateException =>
-                    (StatusCodes.Status409Conflict,
-                     "Database Conflict",
-                     "The request could not be completed due to a database constraint."),
+                    (
+                        StatusCodes.Status409Conflict,
+                        "Database Conflict",
+                        "The request could not be completed due to a database constraint."
+                    ),
 
                 _ =>
-                    (StatusCodes.Status500InternalServerError,
-                     "Internal Server Error",
-                     "An unexpected error occurred. Please try again later.")
+                    (
+                        StatusCodes.Status500InternalServerError,
+                        "Internal Server Error",
+                        "An unexpected error occurred. Please try again later."
+                    )
             };
 
             _logger.LogError(
