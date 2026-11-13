@@ -197,7 +197,7 @@ namespace EmployeeProjectAllocation.Services.Implementations
             }
 
             candidate.Status = status;
-            candidate.InterviewDate = dto.InterviewDate;
+            candidate.InterviewDate = dto.InterviewDate ?? candidate.InterviewDate;
             candidate.Remarks = NormalizeOptionalString(dto.Remarks);
 
             await _context.SaveChangesAsync();
