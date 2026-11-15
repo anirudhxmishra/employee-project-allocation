@@ -17,55 +17,50 @@ namespace EmployeeProjectAllocation.Services.Implementations
 
         public async Task<DashboardResponseDto> GetDashboardAsync()
         {
-            var totalEmployeesTask = _context.Employees
+            // 1. Total employees
+            var totalEmployees = await _context.Employees
                 .AsNoTracking()
                 .CountAsync();
 
-            var allocatedEmployeesTask = _context.ProjectAllocations
+            // 2. Employees with active allocations
+            var allocatedEmployees = await _context.ProjectAllocations
                 .AsNoTracking()
                 .Where(a => a.IsActive)
                 .Select(a => a.EmployeeCode)
                 .Distinct()
                 .CountAsync();
 
-            var totalProjectsTask = _context.Projects
+            // 3. Total projects
+            var totalProjects = await _context.Projects
                 .AsNoTracking()
                 .CountAsync();
 
-            var activeProjectsTask = _context.Projects
+            // 4. Active projects
+            var activeProjects = await _context.Projects
                 .AsNoTracking()
                 .CountAsync(p =>
                     p.Status.ToLower() == "active");
 
-            var totalAllocationsTask = _context.ProjectAllocations
+            // 5. Total allocations
+            var totalAllocations = await _context.ProjectAllocations
                 .AsNoTracking()
                 .CountAsync();
 
-            var activeAllocationsTask = _context.ProjectAllocations
+            // 6. Active allocations
+            var activeAllocations = await _context.ProjectAllocations
                 .AsNoTracking()
                 .CountAsync(a => a.IsActive);
 
-            await Task.WhenAll(
-                totalEmployeesTask,
-                allocatedEmployeesTask,
-                totalProjectsTask,
-                activeProjectsTask,
-                totalAllocationsTask,
-                activeAllocationsTask
-            );
-
-            var totalEmployees = totalEmployeesTask.Result;
-            var allocatedEmployees = allocatedEmployeesTask.Result;
-
+            // Return dashboard response
             return new DashboardResponseDto
             {
                 TotalEmployees = totalEmployees,
                 AllocatedEmployees = allocatedEmployees,
                 AvailableEmployees = totalEmployees - allocatedEmployees,
-                TotalProjects = totalProjectsTask.Result,
-                ActiveProjects = activeProjectsTask.Result,
-                TotalAllocations = totalAllocationsTask.Result,
-                ActiveAllocations = activeAllocationsTask.Result
+                TotalProjects = totalProjects,
+                ActiveProjects = activeProjects,
+                TotalAllocations = totalAllocations,
+                ActiveAllocations = activeAllocations
             };
         }
     }
