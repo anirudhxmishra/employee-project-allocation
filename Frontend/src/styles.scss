@@ -1,1 +1,15 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Global Typography */
+
+* {
+  font-family: 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 14px;
+  color: #1e293b;
+}

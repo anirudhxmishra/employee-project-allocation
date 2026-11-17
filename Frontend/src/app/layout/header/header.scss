@@ -1,0 +1,16 @@
+
+.header {
+  height: 70px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #e8eaf0;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #334155;
+  }
+}

@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using EmployeeProjectAllocation.Backend.Data;
 using EmployeeProjectAllocation.Backend.Middleware;
@@ -11,6 +12,18 @@ builder.Services.AddControllers();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+// Register CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 // Register Entity Framework Core with SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -36,8 +49,6 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-
-
 // Configure HTTP Request Pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -48,6 +59,10 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseCors("AllowAngular");
 
 app.UseAuthorization();
 

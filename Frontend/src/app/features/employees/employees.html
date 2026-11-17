@@ -1,0 +1,84 @@
+
+<section class="employees">
+
+  <div class="page-heading">
+    <div>
+      <h1>Employees</h1>
+      <p>Manage employee records and information</p>
+    </div>
+  </div>
+
+  <div class="employees-card">
+
+    <div class="table-toolbar">
+      <div>
+        <h2>All Employees</h2>
+        <p>{{ employees.length }} employees found</p>
+      </div>
+
+      <input type="text"
+             placeholder="Search employees..."
+             [value]="searchTerm"
+             (input)="searchTerm = $any($event.target).value"
+             class="search-input" />
+    </div>
+
+    @if (isLoading) {
+    <div class="message">
+      Loading employees...
+    </div>
+    }
+
+    @if (errorMessage) {
+    <div class="message error">
+      {{ errorMessage }}
+    </div>
+    }
+
+    @if (!isLoading && !errorMessage) {
+
+    @if (filteredEmployees.length > 0) {
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Employee Code</th>
+            <th>Employee Name</th>
+            <th>Email</th>
+            <th>Location</th>
+            <th>Mobile Number</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (employee of filteredEmployees; track employee.employeeCode) {
+          <tr>
+            <td class="employee-code">
+              {{ employee.employeeCode }}
+            </td>
+            <td class="employee-name">
+              {{ employee.fullName }}
+            </td>
+            <td>{{ employee.email }}</td>
+            <td>{{ employee.location }}</td>
+            <td>{{ employee.mobileNumber }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    } @else {
+
+    <div class="message">
+      No employees found.
+    </div>
+
+    }
+
+    }
+
+  </div>
+
+</section>

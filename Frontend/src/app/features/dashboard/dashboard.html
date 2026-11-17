@@ -1,0 +1,91 @@
+
+<section class="dashboard">
+
+  <!-- Page Heading -->
+  <div class="page-heading">
+    <div>
+      <h1>Dashboard</h1>
+      <p>Overview of employee and project allocation</p>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading) {
+  <div class="message-card">
+    Loading dashboard data...
+  </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage) {
+  <div class="message-card error">
+    {{ errorMessage }}
+  </div>
+  }
+
+  <!-- Dashboard Statistics -->
+  @if (dashboardSummary; as summary) {
+
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <p>Total Employees</p>
+        <h2>{{ summary.totalEmployees }}</h2>
+      </div>
+      <div class="stat-icon blue">E</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <p>Allocated Employees</p>
+        <h2>{{ summary.allocatedEmployees }}</h2>
+      </div>
+      <div class="stat-icon green">A</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <p>Available Employees</p>
+        <h2>{{ summary.availableEmployees }}</h2>
+      </div>
+      <div class="stat-icon orange">R</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <p>Total Projects</p>
+        <h2>{{ summary.totalProjects }}</h2>
+      </div>
+      <div class="stat-icon purple">P</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <p>Active Projects</p>
+        <h2>{{ summary.activeProjects }}</h2>
+      </div>
+      <div class="stat-icon blue">AP</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <p>Total Allocations</p>
+        <h2>{{ summary.totalAllocations }}</h2>
+      </div>
+      <div class="stat-icon orange">TA</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <p>Active Allocations</p>
+        <h2>{{ summary.activeAllocations }}</h2>
+      </div>
+      <div class="stat-icon green">AA</div>
+    </div>
+
+  </div>
+
+  }
+
+</section>

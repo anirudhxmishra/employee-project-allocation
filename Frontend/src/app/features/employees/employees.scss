@@ -1,0 +1,129 @@
+
+.employees {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-heading {
+  h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+  }
+}
+
+.employees-card {
+  background: #ffffff;
+  border: 1px solid #e8eaf0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table-toolbar {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e8eaf0;
+
+  h2 {
+    margin: 0 0 5px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+  }
+}
+
+.search-input {
+  width: 260px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  outline: none;
+  font-size: 13px;
+  color: #334155;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #2563eb;
+  }
+}
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap;
+
+  th {
+    padding: 15px 20px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  td {
+    padding: 16px 20px;
+    border-top: 1px solid #f1f5f9;
+    color: #475569;
+    font-size: 13px;
+  }
+
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+}
+
+.employee-code {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.employee-name {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.message {
+  padding: 30px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.error {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+@media (max-width: 700px) {
+  .table-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+}
