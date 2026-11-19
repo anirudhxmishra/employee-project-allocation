@@ -8,7 +8,7 @@ namespace EmployeeProjectAllocation.Backend.Controllers
     [ApiController]
     public class EmployeesController : ControllerBase
     {
-        private readonly IEmployeeService _employeeService;
+        private readonly IEmployeeService _employeeServAice;
 
         public EmployeesController(IEmployeeService employeeService)
         {

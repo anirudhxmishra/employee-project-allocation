@@ -1,0 +1,79 @@
+@if (visible) {
+<div class="modal-backdrop"
+     (click)="onBackdropClick($event)"
+     (keydown.escape)="onCancel()">
+
+  <div class="modal-container"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="modal-title">
+
+    <div class="modal-content">
+
+      @if (state === 'confirm') {
+      <div class="modal-icon confirm-icon">
+        ?
+      </div>
+      }
+
+      @if (state === 'success') {
+      <div class="modal-icon success-icon">
+        ✓
+      </div>
+      }
+
+      @if (state === 'error') {
+      <div class="modal-icon error-icon">
+        !
+      </div>
+      }
+
+      <h2 id="modal-title">{{ title }}</h2>
+
+      <p class="modal-message">{{ message }}</p>
+
+      @if (employeeName || employeeCode) {
+      <div class="employee-details">
+        @if (employeeName) {
+        <strong>{{ employeeName }}</strong>
+        }
+
+        @if (employeeCode) {
+        <span>Employee ID: {{ employeeCode }}</span>
+        }
+      </div>
+      }
+
+      <div class="modal-actions">
+
+        @if (state === 'confirm') {
+        <button type="button"
+                class="secondary-btn"
+                [disabled]="isProcessing"
+                (click)="onCancel()">
+          {{ cancelText }}
+        </button>
+
+        <button type="button"
+                class="primary-btn"
+                [disabled]="isProcessing"
+                (click)="onConfirm()">
+
+          {{ isProcessing ? 'Please wait...' : confirmText }}
+        </button>
+        }
+
+        @if (state === 'success' || state === 'error') {
+        <button type="button"
+                class="primary-btn"
+                (click)="onCancel()">
+          Done
+        </button>
+        }
+
+      </div>
+
+    </div>
+  </div>
+</div>
+}
