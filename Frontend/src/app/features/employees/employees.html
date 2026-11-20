@@ -1,4 +1,3 @@
-
 <section class="employees-page">
 
   @if (!showAddForm) {
@@ -21,11 +20,43 @@
         <p>View and manage all registered employees.</p>
       </div>
 
-      <input class="search-input"
-             type="text"
-             placeholder="Search employees..."
-             [value]="searchTerm"
-             (input)="searchTerm = $any($event.target).value" />
+      <div class="header-actions">
+
+        <!-- PAGINATION -->
+        @if (!isLoading && !errorMessage && filteredEmployees.length > 0) {
+        <div class="pagination">
+          <span class="pagination-info">
+            Showing {{ startRecord }}–{{ endRecord }} of {{ filteredEmployees.length }}
+          </span>
+
+          <div class="pagination-controls">
+            <button type="button"
+                    class="secondary-btn"
+                    [disabled]="currentPage === 1"
+                    (click)="goToPreviousPage()">
+              Previous
+            </button>
+
+            <span class="pagination-page">
+              Page {{ currentPage }} of {{ totalPages }}
+            </span>
+
+            <button type="button"
+                    class="secondary-btn"
+                    [disabled]="currentPage === totalPages"
+                    (click)="goToNextPage()">
+              Next
+            </button>
+          </div>
+        </div>
+        }
+
+        <input class="search-input"
+               type="text"
+               placeholder="Search employees..."
+               [value]="searchTerm"
+               (input)="onSearchChange($any($event.target).value)" />
+      </div>
     </div>
 
     @if (isLoading) {
@@ -33,9 +64,11 @@
     } @else if (errorMessage) {
     <div class="empty-state error-text">{{ errorMessage }}</div>
     } @else if (filteredEmployees.length === 0) {
-    <div class="empty-state">No employees found.</div>
+    <div class="empty-state">
+      {{ searchTerm.trim() ? 'No employees match your search.' : 'No employees found.' }}
+    </div>
     } @else {
-    <div class="table-wrapper">
+    <div class="table-wrapper" #tableWrapper>
       <table>
         <thead>
           <tr>
@@ -50,7 +83,7 @@
         </thead>
 
         <tbody>
-          @for (employee of filteredEmployees; track employee.employeeCode) {
+          @for (employee of paginatedEmployees; track employee.employeeCode) {
           <tr>
             <td class="employee-code">{{ employee.employeeCode }}</td>
             <td class="employee-name">{{ employee.fullName }}</td>
@@ -59,18 +92,26 @@
             <td>{{ employee.mobileNumber }}</td>
             <td>{{ employee.trainingName }}</td>
 
-            <td class="actions-cell">
-              <button type="button"
-                      class="edit-btn"
-                      (click)="editEmployee(employee)">
-                Edit
-              </button>
+            <td>
+              <div class="actions-cell">
+                <button type="button"
+                        class="view-btn"
+                        (click)="viewEmployee(employee)">
+                  View
+                </button>
 
-              <button type="button"
-                      class="delete-btn"
-                      (click)="deleteEmployeeRecord(employee)">
-                Delete
-              </button>
+                <button type="button"
+                        class="edit-btn"
+                        (click)="editEmployee(employee)">
+                  Edit
+                </button>
+
+                <button type="button"
+                        class="delete-btn"
+                        (click)="deleteEmployeeRecord(employee)">
+                  Delete
+                </button>
+              </div>
             </td>
           </tr>
           }
@@ -116,43 +157,67 @@
           <label>Employee Code *</label>
           <input type="text"
                  formControlName="employeeCode"
+                 [class.invalid]="getFieldError('employeeCode')"
                  placeholder="e.g. 85011003" />
+          @if (getFieldError('employeeCode'); as error) {
+          <small class="field-error">{{ error }}</small>
+          }
         </div>
 
         <div class="form-group">
           <label>Full Name *</label>
           <input type="text"
                  formControlName="fullName"
+                 [class.invalid]="getFieldError('fullName')"
                  placeholder="Enter full name" />
+          @if (getFieldError('fullName'); as error) {
+          <small class="field-error">{{ error }}</small>
+          }
         </div>
 
         <div class="form-group">
           <label>Email Address *</label>
           <input type="email"
                  formControlName="email"
+                 [class.invalid]="getFieldError('email')"
                  placeholder="name@coforge.com" />
+          @if (getFieldError('email'); as error) {
+          <small class="field-error">{{ error }}</small>
+          }
         </div>
 
         <div class="form-group">
           <label>Location *</label>
           <input type="text"
                  formControlName="location"
+                 [class.invalid]="getFieldError('location')"
                  placeholder="Enter location" />
+          @if (getFieldError('location'); as error) {
+          <small class="field-error">{{ error }}</small>
+          }
         </div>
 
         <div class="form-group">
           <label>Mobile Number *</label>
           <input type="text"
                  formControlName="mobileNumber"
+                 [class.invalid]="getFieldError('mobileNumber')"
                  placeholder="10-digit mobile number"
                  maxlength="10" />
+          @if (getFieldError('mobileNumber'); as error) {
+          <small class="field-error">{{ error }}</small>
+          }
         </div>
 
         <div class="form-group">
           <label>Training Name *</label>
           <input type="text"
                  formControlName="trainingName"
+                 [class.invalid]="getFieldError('trainingName')"
                  placeholder="Enter training name" />
+          @if (getFieldError('trainingName'); as error) {
+          <small class="field-error">{{ error }}</small>
+          }
         </div>
 
         <div class="form-group">
@@ -184,6 +249,96 @@
     </form>
   </div>
   }
+
+  <!-- EMPLOYEE DETAILS POPUP -->
+  @if (selectedEmployeeForView; as employee) {
+  <div class="details-overlay" (click)="closeEmployeeDetails()">
+
+    <div class="details-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="employee-details-title"
+         (click)="$event.stopPropagation()">
+
+      <div class="details-header">
+        <div>
+          <h2 id="employee-details-title">Employee Details</h2>
+          <p>Complete employee information</p>
+        </div>
+
+        <button type="button"
+                class="details-close-btn"
+                aria-label="Close employee details"
+                (click)="closeEmployeeDetails()">
+          ✕
+        </button>
+      </div>
+
+      <div class="details-profile">
+        <div class="employee-avatar">
+          {{ employee.fullName.charAt(0).toUpperCase() }}
+        </div>
+
+        <div>
+          <h3>{{ employee.fullName }}</h3>
+          <span>Employee Code: {{ employee.employeeCode }}</span>
+        </div>
+      </div>
+
+      <div class="details-grid">
+
+        <div class="detail-item">
+          <label>Full Name</label>
+          <p>{{ employee.fullName }}</p>
+        </div>
+
+        <div class="detail-item">
+          <label>Employee Code</label>
+          <p>{{ employee.employeeCode }}</p>
+        </div>
+
+        <div class="detail-item">
+          <label>Email Address</label>
+          <p>{{ employee.email }}</p>
+        </div>
+
+        <div class="detail-item">
+          <label>Mobile Number</label>
+          <p>{{ employee.mobileNumber }}</p>
+        </div>
+
+        <div class="detail-item">
+          <label>Location</label>
+          <p>{{ employee.location }}</p>
+        </div>
+
+        <div class="detail-item">
+          <label>Training Name</label>
+          <p>{{ employee.trainingName }}</p>
+        </div>
+
+        <div class="detail-item full-width">
+          <label>Training Completed On</label>
+          <p>
+            {{ formatTrainingDate(employee.trainingCompletedOn) }}
+          </p>
+        </div>
+
+      </div>
+
+      <div class="details-footer">
+        <button type="button"
+                class="secondary-btn"
+                (click)="closeEmployeeDetails()">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+  }
+
+  <!-- REUSABLE ACTION MODAL -->
   <app-action-modal [visible]="modalVisible"
                     [state]="modalState"
                     [title]="modalTitle"

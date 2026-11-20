@@ -1,7 +1,8 @@
-
 import {
   Component,
+  ElementRef,
   OnInit,
+  ViewChild,
   inject,
   ChangeDetectorRef
 } from '@angular/core';
@@ -24,6 +25,44 @@ import {
 
 type ModalPurpose = 'delete' | 'form' | null;
 
+type EmployeeFormField =
+  | 'employeeCode'
+  | 'fullName'
+  | 'email'
+  | 'location'
+  | 'mobileNumber'
+  | 'trainingName';
+
+// Field-level validation messages
+const FIELD_ERROR_MESSAGES: Record<EmployeeFormField, Record<string, string>> = {
+  employeeCode: {
+    required: 'Employee code is required.',
+    maxlength: 'Employee code cannot exceed 8 characters.'
+  },
+  fullName: {
+    required: 'Full name is required.',
+    minlength: 'Full name must be at least 2 characters.',
+    maxlength: 'Full name cannot exceed 100 characters.'
+  },
+  email: {
+    required: 'Email address is required.',
+    email: 'Enter a valid email address.',
+    maxlength: 'Email address cannot exceed 150 characters.'
+  },
+  location: {
+    required: 'Location is required.',
+    maxlength: 'Location cannot exceed 100 characters.'
+  },
+  mobileNumber: {
+    required: 'Mobile number is required.',
+    pattern: 'Mobile number must be exactly 10 digits.'
+  },
+  trainingName: {
+    required: 'Training name is required.',
+    maxlength: 'Training name cannot exceed 150 characters.'
+  }
+};
+
 @Component({
   selector: 'app-employees',
   standalone: true,
@@ -40,11 +79,18 @@ export class Employees implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private fb = inject(FormBuilder);
 
+  // Scrollable table area (used to jump back to the top on page change)
+  @ViewChild('tableWrapper') private tableWrapper?: ElementRef<HTMLDivElement>;
+
   employees: EmployeeResponse[] = [];
 
   searchTerm = '';
   isLoading = true;
   errorMessage = '';
+
+  // Pagination
+  readonly pageSize = 10;
+  currentPage = 1;
 
   showAddForm = false;
   isSaving = false;
@@ -67,6 +113,8 @@ export class Employees implements OnInit {
   private modalPurpose: ModalPurpose = null;
 
   private selectedEmployeeForDeletion: EmployeeResponse | null = null;
+
+  selectedEmployeeForView: EmployeeResponse | null = null;
 
   employeeForm = this.fb.group({
     employeeCode: [
@@ -113,6 +161,7 @@ export class Employees implements OnInit {
     trainingCompletedOn: ['']
   });
 
+  // Search (name, employee code, email - case-insensitive)
   get filteredEmployees(): EmployeeResponse[] {
     const search = this.searchTerm.toLowerCase().trim();
 
@@ -124,6 +173,38 @@ export class Employees implements OnInit {
       employee.fullName.toLowerCase().includes(search) ||
       employee.employeeCode.toLowerCase().includes(search) ||
       employee.email.toLowerCase().includes(search)
+    );
+  }
+
+  // Pagination getters
+  get totalPages(): number {
+    return Math.max(
+      1,
+      Math.ceil(this.filteredEmployees.length / this.pageSize)
+    );
+  }
+
+  get paginatedEmployees(): EmployeeResponse[] {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+
+    return this.filteredEmployees.slice(
+      startIndex,
+      startIndex + this.pageSize
+    );
+  }
+
+  get startRecord(): number {
+    if (this.filteredEmployees.length === 0) {
+      return 0;
+    }
+
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get endRecord(): number {
+    return Math.min(
+      this.currentPage * this.pageSize,
+      this.filteredEmployees.length
     );
   }
 
@@ -140,6 +221,10 @@ export class Employees implements OnInit {
       next: (response) => {
         this.employees = response;
         this.isLoading = false;
+
+        // Handles the case where the current page becomes empty (e.g. after delete)
+        this.ensureValidCurrentPage();
+
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -151,6 +236,93 @@ export class Employees implements OnInit {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  // Search changed - always return to page 1
+  onSearchChange(value: string): void {
+    this.searchTerm = value;
+    this.currentPage = 1;
+    this.scrollTableToTop();
+  }
+
+  // Pagination controls
+  goToPreviousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.scrollTableToTop();
+    }
+  }
+
+  goToNextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.scrollTableToTop();
+    }
+  }
+
+  // Reset the internal table scroll position
+  private scrollTableToTop(): void {
+    this.tableWrapper?.nativeElement.scrollTo({ top: 0 });
+  }
+
+  // Keep current page within the valid range
+  private ensureValidCurrentPage(): void {
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+
+    if (this.currentPage < 1) {
+      this.currentPage = 1;
+    }
+  }
+
+  // Format date as "20 November 2026"
+  formatTrainingDate(value: string | null | undefined): string {
+    if (!value) {
+      return 'Not provided';
+    }
+
+    // Use only the date part to avoid time zone shifts
+    const [year, month, day] = value
+      .substring(0, 10)
+      .split('-')
+      .map(Number);
+
+    const date = new Date(year, month - 1, day);
+
+    if (!year || !month || !day || isNaN(date.getTime())) {
+      return 'Not provided';
+    }
+
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+
+  // Field-level validation message (empty string when valid)
+  getFieldError(field: EmployeeFormField): string {
+    const control = this.employeeForm.controls[field];
+
+    if (!control || !control.errors || !(control.touched || control.dirty)) {
+      return '';
+    }
+
+    const messages = FIELD_ERROR_MESSAGES[field];
+    const errorKey = Object.keys(control.errors)[0];
+
+    return messages[errorKey] ?? 'Invalid value.';
+  }
+
+  // Open Employee Details
+  viewEmployee(employee: EmployeeResponse): void {
+    this.selectedEmployeeForView = employee;
+  }
+
+  // Close Employee Details
+  closeEmployeeDetails(): void {
+    this.selectedEmployeeForView = null;
   }
 
   // Open Add Employee form
@@ -388,6 +560,7 @@ export class Employees implements OnInit {
 
         this.selectedEmployeeForDeletion = null;
 
+        // Reloads the list and moves back a page if the current page is now empty
         this.loadEmployees();
         this.cdr.markForCheck();
       },
