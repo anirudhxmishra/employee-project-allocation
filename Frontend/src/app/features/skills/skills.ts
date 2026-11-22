@@ -1,12 +1,14 @@
-
 import {
+  ChangeDetectorRef,
   Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
   OnInit,
-  inject,
-  ChangeDetectorRef
+  ViewChild,
+  inject
 } from '@angular/core';
 
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -20,18 +22,23 @@ import {
 
 import { EmployeeResponse } from '../../core/models/employee-response.model';
 
+type DropTarget = 'available' | 'assigned';
+
 @Component({
   selector: 'app-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './skills.html',
   styleUrl: './skills.scss'
 })
-export class Skills implements OnInit {
+export class Skills implements OnInit, OnDestroy {
 
   private skillService = inject(SkillService);
   private employeeService = inject(EmployeeService);
   private cdr = inject(ChangeDetectorRef);
+
+  // Focus the skill name field when the Add Skill form opens
+  @ViewChild('skillInput') private skillInput?: ElementRef<HTMLInputElement>;
 
   skills: SkillResponse[] = [];
   employees: EmployeeResponse[] = [];
@@ -40,13 +47,16 @@ export class Skills implements OnInit {
   // Skills selected but not yet saved
   pendingSkills: SkillResponse[] = [];
 
+  // Drag and drop state
   draggedSkillId: number | null = null;
+  dropTarget: DropTarget | null = null;
 
   searchTerm = '';
+  availableSearch = '';
   skillName = '';
   selectedEmployeeCode = '';
 
-  isLoading = false;
+  isLoading = true;
   isSubmitting = false;
   isLoadingEmployees = false;
   isLoadingEmployeeSkills = false;
@@ -56,17 +66,35 @@ export class Skills implements OnInit {
 
   successMessage = '';
   errorMessage = '';
+  formError = '';
   employeeSkillsError = '';
   assignmentError = '';
+
+  private successTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.loadSkills();
     this.loadEmployees();
   }
 
+  ngOnDestroy(): void {
+    this.clearSuccessTimer();
+  }
+
+  // Close the Add Skill form with the Escape key
+  @HostListener('document:keydown.escape')
+  onEscapePressed(): void {
+    if (this.showAddForm) {
+      this.closeAddForm();
+    }
+  }
+
   // Get all skills
-  loadSkills(): void {
-    this.isLoading = true;
+  loadSkills(silent = false): void {
+    if (!silent) {
+      this.isLoading = true;
+    }
+
     this.errorMessage = '';
 
     this.skillService.getSkills().subscribe({
@@ -107,48 +135,97 @@ export class Skills implements OnInit {
     });
   }
 
+  // First letter or digit of a skill name, used for the avatar (".NET" -> "N")
+  getInitial(skillName: string): string {
+    const match = skillName.match(/[A-Za-z0-9]/);
+
+    return (match ? match[0] : skillName.charAt(0)).toUpperCase();
+  }
+
+  // Employee currently selected in the assignment card
+  get selectedEmployee(): EmployeeResponse | null {
+    return (
+      this.employees.find(
+        employee => employee.employeeCode === this.selectedEmployeeCode
+      ) ?? null
+    );
+  }
+
   // Load skills when an employee is selected
-  onEmployeeChange(): void {
+  onEmployeeSelect(employeeCode: string): void {
+    this.selectedEmployeeCode = employeeCode ?? '';
+
     this.employeeSkills = [];
     this.pendingSkills = [];
+    this.availableSearch = '';
     this.assignmentError = '';
     this.employeeSkillsError = '';
+    this.isLoadingEmployeeSkills = false;
+    this.draggedSkillId = null;
+    this.dropTarget = null;
 
     if (!this.selectedEmployeeCode) {
       this.cdr.markForCheck();
       return;
     }
 
-    this.isLoadingEmployeeSkills = true;
+    this.fetchEmployeeSkills(this.selectedEmployeeCode);
+  }
 
-    this.skillService
-      .getEmployeeSkills(this.selectedEmployeeCode)
-      .subscribe({
-        next: (response) => {
-          this.employeeSkills = response;
-          this.isLoadingEmployeeSkills = false;
-          this.cdr.markForCheck();
-        },
-        error: (error: HttpErrorResponse) => {
-          this.isLoadingEmployeeSkills = false;
+  // Fetch the skills already assigned to an employee
+  private fetchEmployeeSkills(employeeCode: string, silent = false): void {
+    if (!silent) {
+      this.isLoadingEmployeeSkills = true;
+    }
+
+    this.skillService.getEmployeeSkills(employeeCode).subscribe({
+      next: (response) => {
+        // Ignore the response if another employee was selected meanwhile
+        if (this.selectedEmployeeCode !== employeeCode) return;
+
+        this.employeeSkills = response;
+        this.isLoadingEmployeeSkills = false;
+        this.cdr.markForCheck();
+      },
+      error: (error: HttpErrorResponse) => {
+        if (this.selectedEmployeeCode !== employeeCode) return;
+
+        this.isLoadingEmployeeSkills = false;
+
+        // A silent refresh keeps the data already on screen
+        if (!silent) {
           this.employeeSkillsError = this.getErrorMessage(
             error,
             'Unable to load employee skills.'
           );
-          this.cdr.markForCheck();
         }
-      });
+
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   // Skills available to assign
   get availableSkills(): SkillResponse[] {
-    const assignedIds = [
-      ...this.employeeSkills,
-      ...this.pendingSkills
-    ].map(skill => skill.skillId);
+    const assignedIds = new Set(
+      [...this.employeeSkills, ...this.pendingSkills].map(
+        skill => skill.skillId
+      )
+    );
 
-    return this.skills.filter(
-      skill => !assignedIds.includes(skill.skillId)
+    return this.skills.filter(skill => !assignedIds.has(skill.skillId));
+  }
+
+  // Available skills after applying the panel filter
+  get filteredAvailableSkills(): SkillResponse[] {
+    const search = this.availableSearch.trim().toLowerCase();
+
+    if (!search) {
+      return this.availableSkills;
+    }
+
+    return this.availableSkills.filter(skill =>
+      skill.skillName.toLowerCase().includes(search)
     );
   }
 
@@ -160,50 +237,118 @@ export class Skills implements OnInit {
     ];
   }
 
-  // Start dragging a skill
-  onDragStart(skillId: number): void {
-    this.draggedSkillId = skillId;
+  // Add a skill to the pending list (drop or + button)
+  addPendingSkill(skill: SkillResponse): void {
+    const alreadyAssigned = this.displayedAssignedSkills.some(
+      item => item.skillId === skill.skillId
+    );
+
+    if (alreadyAssigned) return;
+
+    this.pendingSkills = [...this.pendingSkills, skill];
+    this.assignmentError = '';
+    this.cdr.markForCheck();
   }
 
-  // Allow dropping
-  onDragOver(event: DragEvent): void {
+  // Remove a skill from the pending list (drop back or x button)
+  removePendingSkill(skillId: number): void {
+    this.pendingSkills = this.pendingSkills.filter(
+      skill => skill.skillId !== skillId
+    );
+
+    this.cdr.markForCheck();
+  }
+
+  // Start dragging a skill
+  onDragStart(event: DragEvent, skillId: number): void {
+    this.draggedSkillId = skillId;
+
+    // Required by Firefox for the drag to start
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', String(skillId));
+    }
+  }
+
+  // Finish dragging (drop anywhere or cancelled)
+  onDragEnd(): void {
+    this.resetDragState();
+  }
+
+  // Allow dropping only where the dragged skill can actually go
+  onDragOver(event: DragEvent, target: DropTarget): void {
+    if (!this.canDropOn(target)) return;
+
     event.preventDefault();
+
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+
+    if (this.dropTarget !== target) {
+      this.dropTarget = target;
+      this.cdr.markForCheck();
+    }
+  }
+
+  // Remove the highlight when the pointer leaves a panel
+  onDragLeave(event: DragEvent, target: DropTarget): void {
+    const panel = event.currentTarget as HTMLElement;
+    const next = event.relatedTarget as Node | null;
+
+    // Ignore leave events fired when moving over child elements
+    if (next && panel.contains(next)) return;
+
+    if (this.dropTarget === target) {
+      this.dropTarget = null;
+      this.cdr.markForCheck();
+    }
   }
 
   // Drop a skill into Assigned Skills
   dropOnAssigned(event: DragEvent): void {
     event.preventDefault();
 
-    if (this.draggedSkillId === null) return;
+    const skillId = this.draggedSkillId;
+    this.resetDragState();
+
+    if (skillId === null) return;
 
     const skill = this.availableSkills.find(
-      item => item.skillId === this.draggedSkillId
+      item => item.skillId === skillId
     );
 
-    if (
-      skill &&
-      !this.displayedAssignedSkills.some(
-        item => item.skillId === skill.skillId
-      )
-    ) {
-      this.pendingSkills = [...this.pendingSkills, skill];
+    if (skill) {
+      this.addPendingSkill(skill);
     }
-
-    this.draggedSkillId = null;
-    this.cdr.markForCheck();
   }
 
   // Drop a newly selected skill back into Available Skills
   dropOnAvailable(event: DragEvent): void {
     event.preventDefault();
 
-    if (this.draggedSkillId === null) return;
+    const skillId = this.draggedSkillId;
+    this.resetDragState();
 
-    this.pendingSkills = this.pendingSkills.filter(
-      skill => skill.skillId !== this.draggedSkillId
+    if (skillId === null) return;
+
+    this.removePendingSkill(skillId);
+  }
+
+  // Available skills can only go to Assigned, pending skills only back
+  private canDropOn(target: DropTarget): boolean {
+    if (this.draggedSkillId === null) return false;
+
+    const isPending = this.pendingSkills.some(
+      skill => skill.skillId === this.draggedSkillId
     );
 
+    return target === 'assigned' ? !isPending : isPending;
+  }
+
+  private resetDragState(): void {
     this.draggedSkillId = null;
+    this.dropTarget = null;
     this.cdr.markForCheck();
   }
 
@@ -211,8 +356,7 @@ export class Skills implements OnInit {
   cancelAssignmentChanges(): void {
     this.pendingSkills = [];
     this.assignmentError = '';
-    this.draggedSkillId = null;
-    this.cdr.markForCheck();
+    this.resetDragState();
   }
 
   // Save new skill assignments
@@ -225,26 +369,28 @@ export class Skills implements OnInit {
       return;
     }
 
-    const skillIds = this.pendingSkills.map(
-      skill => skill.skillId
-    );
+    const employeeCode = this.selectedEmployeeCode;
+    const assignedSkills = this.pendingSkills;
+    const skillIds = assignedSkills.map(skill => skill.skillId);
 
     this.isSavingAssignments = true;
     this.assignmentError = '';
-    this.successMessage = '';
+    this.clearMessages();
 
     this.skillService
-      .assignSkills(this.selectedEmployeeCode, skillIds)
+      .assignSkills(employeeCode, skillIds)
       .subscribe({
         next: () => {
           this.isSavingAssignments = false;
-          this.pendingSkills = [];
-          this.successMessage = 'Skills assigned successfully.';
 
+          // Show the saved skills straight away, then sync with the server
+          this.employeeSkills = [...this.employeeSkills, ...assignedSkills];
+          this.pendingSkills = [];
+
+          this.showSuccess('Skills assigned successfully.');
           this.cdr.markForCheck();
 
-          // Refresh the employee's assigned skills
-          this.onEmployeeChange();
+          this.fetchEmployeeSkills(employeeCode, true);
         },
         error: (error: HttpErrorResponse) => {
           this.isSavingAssignments = false;
@@ -273,10 +419,13 @@ export class Skills implements OnInit {
   // Open add skill form
   openAddForm(): void {
     this.skillName = '';
+    this.formError = '';
     this.successMessage = '';
-    this.errorMessage = '';
+    this.clearSuccessTimer();
     this.showAddForm = true;
     this.cdr.markForCheck();
+
+    setTimeout(() => this.skillInput?.nativeElement.focus());
   }
 
   // Close add skill form
@@ -285,22 +434,25 @@ export class Skills implements OnInit {
 
     this.showAddForm = false;
     this.skillName = '';
+    this.formError = '';
     this.cdr.markForCheck();
   }
 
   // Create skill
   createSkill(): void {
+    if (this.isSubmitting) return;
+
     const name = this.skillName.trim();
 
     if (name.length < 2) {
-      this.errorMessage =
+      this.formError =
         'Skill name must contain at least 2 characters.';
       this.cdr.markForCheck();
       return;
     }
 
     if (name.length > 100) {
-      this.errorMessage =
+      this.formError =
         'Skill name cannot exceed 100 characters.';
       this.cdr.markForCheck();
       return;
@@ -311,8 +463,7 @@ export class Skills implements OnInit {
     };
 
     this.isSubmitting = true;
-    this.errorMessage = '';
-    this.successMessage = '';
+    this.formError = '';
     this.cdr.markForCheck();
 
     this.skillService.createSkill(skill).subscribe({
@@ -320,14 +471,16 @@ export class Skills implements OnInit {
         this.isSubmitting = false;
         this.showAddForm = false;
         this.skillName = '';
-        this.successMessage = 'Skill added successfully.';
 
+        this.showSuccess('Skill added successfully.');
         this.cdr.markForCheck();
-        this.loadSkills();
+
+        // Refresh the list without showing the loading spinner
+        this.loadSkills(true);
       },
       error: (error: HttpErrorResponse) => {
         this.isSubmitting = false;
-        this.errorMessage = this.getErrorMessage(
+        this.formError = this.getErrorMessage(
           error,
           'Unable to add skill. Please try again.'
         );
@@ -351,8 +504,28 @@ export class Skills implements OnInit {
       : fallback;
   }
 
+  // Show a success message that dismisses itself
+  private showSuccess(message: string): void {
+    this.clearSuccessTimer();
+    this.successMessage = message;
+
+    this.successTimer = setTimeout(() => {
+      this.successMessage = '';
+      this.successTimer = null;
+      this.cdr.markForCheck();
+    }, 4000);
+  }
+
+  private clearSuccessTimer(): void {
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+  }
+
   // Clear messages
   clearMessages(): void {
+    this.clearSuccessTimer();
     this.successMessage = '';
     this.errorMessage = '';
     this.cdr.markForCheck();

@@ -1,267 +1,337 @@
+<section class="skills-page">
 
-<div class="skills-page">
-
-  <!-- Page Header -->
-  <div class="page-header">
+  <!-- PAGE HEADER -->
+  <header class="page-header">
     <div>
       <h1>Skills Management</h1>
       <p>Manage technical skills and employee skill assignments.</p>
     </div>
 
-    <button class="add-btn" (click)="openAddForm()">
-      <span class="plus-icon">+</span>
+    <button type="button" class="add-btn" (click)="openAddForm()">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
       Add Skill
     </button>
-  </div>
+  </header>
 
-  <!-- Messages -->
-  <div class="alert success-alert" *ngIf="successMessage">
+  <!-- MESSAGES -->
+  @if (successMessage) {
+  <div class="alert success-alert" role="status">
     <span>{{ successMessage }}</span>
-    <button (click)="clearMessages()">×</button>
+    <button type="button" aria-label="Dismiss message" (click)="clearMessages()">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
   </div>
+  }
 
-  <div class="alert error-alert" *ngIf="errorMessage">
+  @if (errorMessage) {
+  <div class="alert error-alert" role="alert">
     <span>{{ errorMessage }}</span>
-    <button (click)="clearMessages()">×</button>
+    <button type="button" aria-label="Dismiss message" (click)="clearMessages()">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
   </div>
+  }
 
-  <!-- Summary -->
-  <div class="summary-card">
-    <div class="summary-icon">✦</div>
-    <div>
-      <p>Total Skills</p>
-      <h2>{{ skills.length }}</h2>
-    </div>
-  </div>
+  <div class="skills-layout">
+    <div class="skills-grid">
 
-  <!-- Employee Skills Assignment -->
-  <div class="content-card assignment-card">
+      <!-- EMPLOYEE SKILL ASSIGNMENT -->
+      <section class="card assignment-card" aria-labelledby="assignment-title">
 
-    <div class="table-header">
-      <div>
-        <h2>Employee Skill Assignment</h2>
-        <p>Drag and drop skills to manage employee assignments.</p>
-      </div>
-
-      <div class="employee-select">
-        <select [(ngModel)]="selectedEmployeeCode"
-                (ngModelChange)="onEmployeeChange()"
-                [disabled]="isLoadingEmployees || isSavingAssignments">
-          <option value="">
-            {{ isLoadingEmployees ? 'Loading employees...' : 'Select Employee' }}
-          </option>
-
-          <option *ngFor="let employee of employees"
-                  [value]="employee.employeeCode">
-            {{ employee.fullName }} ({{ employee.employeeCode }})
-          </option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div class="loading-state" *ngIf="isLoadingEmployeeSkills">
-      <div class="spinner"></div>
-      <p>Loading employee skills...</p>
-    </div>
-
-    <!-- Error -->
-    <div class="employee-error" *ngIf="employeeSkillsError">
-      {{ employeeSkillsError }}
-    </div>
-
-    <div class="assignment-workspace"
-         *ngIf="selectedEmployeeCode && !isLoadingEmployeeSkills && !employeeSkillsError">
-
-      <!-- Available Skills -->
-      <div class="skill-drop-panel"
-           (dragover)="onDragOver($event)"
-           (drop)="dropOnAvailable($event)">
-        <div class="panel-heading">
+        <div class="card-header">
           <div>
-            <h3>Available Skills</h3>
-            <p>Drag skills into the assigned panel</p>
+            <h2 id="assignment-title">Employee Skill Assignment</h2>
+            <p>
+              @if (selectedEmployee; as employee) {
+              Assigning skills to {{ employee.fullName }} ({{ employee.employeeCode }})
+              } @else {
+              Select an employee, then drag skills across or use the + button.
+              }
+            </p>
           </div>
 
-          <span class="panel-count">
-            {{ availableSkills.length }}
-          </span>
+          <div class="employee-select">
+            <label class="sr-only" for="employeeSelect">Select employee</label>
+            <select id="employeeSelect"
+                    [ngModel]="selectedEmployeeCode"
+                    (ngModelChange)="onEmployeeSelect($event)"
+                    [disabled]="isLoadingEmployees || isSavingAssignments">
+              <option value="">
+                {{ isLoadingEmployees ? 'Loading employees...' : 'Select Employee' }}
+              </option>
+
+              @for (employee of employees; track employee.employeeCode) {
+              <option [value]="employee.employeeCode">
+                {{ employee.fullName }} ({{ employee.employeeCode }})
+              </option>
+              }
+            </select>
+          </div>
         </div>
 
-        <div class="skill-list">
+        <div class="assignment-body">
 
-          <div class="draggable-skill"
-               *ngFor="let skill of availableSkills"
-               draggable="true"
-               (dragstart)="onDragStart(skill.skillId)"
-               (dragend)="draggedSkillId = null">
-            <div class="skill-avatar">
-              {{ skill.skillName.charAt(0).toUpperCase() }}
+          @if (isLoadingEmployeeSkills) {
+          <!-- Loading -->
+          <div class="state-block">
+            <div class="spinner"></div>
+            <p>Loading employee skills...</p>
+          </div>
+          } @else if (employeeSkillsError) {
+          <!-- Error -->
+          <div class="state-block">
+            <div class="state-error">{{ employeeSkillsError }}</div>
+          </div>
+          } @else if (!selectedEmployeeCode) {
+          <!-- Initial state -->
+          <div class="state-block">
+            <div class="state-icon">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
             </div>
-
-            <span>{{ skill.skillName }}</span>
-
-            <span class="drag-icon">⠿</span>
+            <h3>Select an employee</h3>
+            <p>Choose an employee to manage their assigned skills.</p>
           </div>
+          } @else {
+          <!-- Assignment workspace -->
+          <div class="workspace">
 
-          <div class="panel-empty" *ngIf="availableSkills.length === 0">
-            All available skills have been assigned.
-          </div>
+            <!-- Available skills -->
+            <div class="skill-panel"
+                 [class.drop-active]="dropTarget === 'available'"
+                 (dragover)="onDragOver($event, 'available')"
+                 (dragleave)="onDragLeave($event, 'available')"
+                 (drop)="dropOnAvailable($event)">
 
-        </div>
-      </div>
-
-      <!-- Transfer Indicator -->
-      <div class="transfer-indicator">
-        <span>⇄</span>
-      </div>
-
-      <!-- Assigned Skills -->
-      <div class="skill-drop-panel assigned-panel"
-           (dragover)="onDragOver($event)"
-           (drop)="dropOnAssigned($event)">
-        <div class="panel-heading">
-          <div>
-            <h3>Assigned Skills</h3>
-            <p>Drop new skills here</p>
-          </div>
-
-          <span class="panel-count assigned-count">
-            {{ displayedAssignedSkills.length }}
-          </span>
-        </div>
-
-        <div class="skill-list">
-
-          <!-- Existing assignments -->
-          <div class="draggable-skill existing-skill"
-               *ngFor="let skill of employeeSkills">
-            <div class="skill-avatar">
-              {{ skill.skillName.charAt(0).toUpperCase() }}
-            </div>
-
-            <span>{{ skill.skillName }}</span>
-
-            <span class="existing-label">Saved</span>
-          </div>
-
-          <!-- Newly selected skills -->
-          <div class="draggable-skill pending-skill"
-               *ngFor="let skill of pendingSkills"
-               draggable="true"
-               (dragstart)="onDragStart(skill.skillId)"
-               (dragend)="draggedSkillId = null">
-            <div class="skill-avatar">
-              {{ skill.skillName.charAt(0).toUpperCase() }}
-            </div>
-
-            <span>{{ skill.skillName }}</span>
-
-            <span class="pending-label">New · Drag back to remove</span>
-          </div>
-
-          <div class="panel-empty"
-               *ngIf="displayedAssignedSkills.length === 0">
-            Drop skills here to assign them.
-          </div>
-
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Assignment Error -->
-    <div class="employee-error" *ngIf="assignmentError">
-      {{ assignmentError }}
-    </div>
-
-    <!-- Assignment Actions -->
-    <div class="assignment-footer"
-         *ngIf="selectedEmployeeCode && !isLoadingEmployeeSkills && !employeeSkillsError">
-      <span>
-        {{ pendingSkills.length }} unsaved skill(s)
-      </span>
-
-      <div class="assignment-actions">
-        <button class="cancel-btn"
-                type="button"
-                (click)="cancelAssignmentChanges()"
-                [disabled]="pendingSkills.length === 0 || isSavingAssignments">
-          Cancel
-        </button>
-
-        <button class="submit-btn"
-                type="button"
-                (click)="saveAssignments()"
-                [disabled]="pendingSkills.length === 0 || isSavingAssignments">
-          {{ isSavingAssignments ? 'Saving...' : 'Save Changes' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Initial State -->
-    <div class="empty-state employee-empty"
-         *ngIf="!selectedEmployeeCode && !isLoadingEmployees && !employeeSkillsError">
-      <div class="empty-icon">♙</div>
-      <h3>Select an employee</h3>
-      <p>Choose an employee to manage their assigned skills.</p>
-    </div>
-
-  </div>
-
-  <!-- Skills Directory -->
-  <div class="content-card">
-
-    <div class="table-header">
-      <div>
-        <h2>All Skills</h2>
-        <p>View your organization's skill directory.</p>
-      </div>
-
-      <div class="search-box">
-        <span>⌕</span>
-        <input type="text"
-               placeholder="Search skills..."
-               [(ngModel)]="searchTerm" />
-      </div>
-    </div>
-
-    <div class="loading-state" *ngIf="isLoading">
-      <div class="spinner"></div>
-      <p>Loading skills...</p>
-    </div>
-
-    <div class="table-wrapper" *ngIf="!isLoading">
-      <table>
-        <thead>
-          <tr>
-            <th>SKILL ID</th>
-            <th>SKILL NAME</th>
-            <th>STATUS</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr *ngFor="let skill of filteredSkills">
-            <td class="skill-id">#{{ skill.skillId }}</td>
-
-            <td>
-              <div class="skill-name-cell">
-                <div class="skill-avatar">
-                  {{ skill.skillName.charAt(0).toUpperCase() }}
+              <div class="panel-heading">
+                <div>
+                  <h3>Available Skills</h3>
+                  <p>Drag to assign, or click +</p>
                 </div>
-                <span>{{ skill.skillName }}</span>
+                <span class="panel-count">{{ availableSkills.length }}</span>
               </div>
-            </td>
 
-            <td>
-              <span class="status-badge">Available</span>
-            </td>
-          </tr>
+              <div class="panel-search">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+                <input type="text"
+                       placeholder="Filter skills..."
+                       aria-label="Filter available skills"
+                       [(ngModel)]="availableSearch" />
+              </div>
 
-          <tr *ngIf="filteredSkills.length === 0">
-            <td colspan="3" class="empty-state">
-              <div class="empty-icon">✦</div>
+              <ul class="skill-list">
+                @for (skill of filteredAvailableSkills; track skill.skillId) {
+                <li class="skill-item draggable"
+                    draggable="true"
+                    (dragstart)="onDragStart($event, skill.skillId)"
+                    (dragend)="onDragEnd()">
+                  <svg class="grip" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="9" cy="6" r="1.5" />
+                    <circle cx="15" cy="6" r="1.5" />
+                    <circle cx="9" cy="12" r="1.5" />
+                    <circle cx="15" cy="12" r="1.5" />
+                    <circle cx="9" cy="18" r="1.5" />
+                    <circle cx="15" cy="18" r="1.5" />
+                  </svg>
+
+                  <span class="skill-avatar">{{ getInitial(skill.skillName) }}</span>
+                  <span class="skill-name" [title]="skill.skillName">{{ skill.skillName }}</span>
+
+                  <button type="button"
+                          class="icon-btn add"
+                          [attr.aria-label]="'Assign ' + skill.skillName"
+                          (click)="addPendingSkill(skill)">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </button>
+                </li>
+                } @empty {
+                <li class="panel-empty">
+                  @if (availableSearch.trim()) {
+                  No skills match your filter.
+                  } @else if (skills.length === 0) {
+                  No skills available. Add a skill first.
+                  } @else {
+                  All skills have been assigned.
+                  }
+                </li>
+                }
+              </ul>
+            </div>
+
+            <!-- Transfer indicator -->
+            <div class="transfer-indicator" aria-hidden="true">
+              <span>
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M7 7h12m0 0l-3-3m3 3l-3 3" />
+                  <path d="M17 17H5m0 0l3-3m-3 3l3 3" />
+                </svg>
+              </span>
+            </div>
+
+            <!-- Assigned skills -->
+            <div class="skill-panel assigned-panel"
+                 [class.drop-active]="dropTarget === 'assigned'"
+                 (dragover)="onDragOver($event, 'assigned')"
+                 (dragleave)="onDragLeave($event, 'assigned')"
+                 (drop)="dropOnAssigned($event)">
+
+              <div class="panel-heading">
+                <div>
+                  <h3>Assigned Skills</h3>
+                  <p>Drop new skills here</p>
+                </div>
+                <span class="panel-count assigned-count">{{ displayedAssignedSkills.length }}</span>
+              </div>
+
+              <ul class="skill-list">
+
+                <!-- Saved assignments -->
+                @for (skill of employeeSkills; track skill.skillId) {
+                <li class="skill-item saved">
+                  <span class="skill-avatar">{{ getInitial(skill.skillName) }}</span>
+                  <span class="skill-name" [title]="skill.skillName">{{ skill.skillName }}</span>
+
+                  <span class="tag tag-saved">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 12l5 5L20 7" />
+                    </svg>
+                    Saved
+                  </span>
+                </li>
+                }
+
+                <!-- Newly selected skills -->
+                @for (skill of pendingSkills; track skill.skillId) {
+                <li class="skill-item pending draggable"
+                    draggable="true"
+                    (dragstart)="onDragStart($event, skill.skillId)"
+                    (dragend)="onDragEnd()">
+                  <svg class="grip" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="9" cy="6" r="1.5" />
+                    <circle cx="15" cy="6" r="1.5" />
+                    <circle cx="9" cy="12" r="1.5" />
+                    <circle cx="15" cy="12" r="1.5" />
+                    <circle cx="9" cy="18" r="1.5" />
+                    <circle cx="15" cy="18" r="1.5" />
+                  </svg>
+
+                  <span class="skill-avatar">{{ getInitial(skill.skillName) }}</span>
+                  <span class="skill-name" [title]="skill.skillName">{{ skill.skillName }}</span>
+
+                  <span class="tag tag-new">New</span>
+
+                  <button type="button"
+                          class="icon-btn remove"
+                          [attr.aria-label]="'Remove ' + skill.skillName"
+                          (click)="removePendingSkill(skill.skillId)">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                </li>
+                }
+
+                @if (displayedAssignedSkills.length === 0) {
+                <li class="panel-empty">Drop skills here to assign them.</li>
+                }
+              </ul>
+            </div>
+
+          </div>
+          }
+
+        </div>
+
+        @if (assignmentError) {
+        <div class="inline-error" role="alert">{{ assignmentError }}</div>
+        }
+
+        <!-- Assignment actions -->
+        <div class="assignment-footer">
+          <span class="footer-status" [class.has-changes]="pendingSkills.length > 0">
+            @if (!selectedEmployeeCode) {
+            No employee selected
+            } @else if (pendingSkills.length > 0) {
+            {{ pendingSkills.length }} unsaved skill{{ pendingSkills.length === 1 ? '' : 's' }}
+            } @else {
+            No pending changes
+            }
+          </span>
+
+          <div class="assignment-actions">
+            <button type="button"
+                    class="cancel-btn"
+                    (click)="cancelAssignmentChanges()"
+                    [disabled]="pendingSkills.length === 0 || isSavingAssignments">
+              Cancel
+            </button>
+
+            <button type="button"
+                    class="submit-btn"
+                    (click)="saveAssignments()"
+                    [disabled]="pendingSkills.length === 0 || isSavingAssignments">
+              {{ isSavingAssignments ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- SKILLS DIRECTORY -->
+      <section class="card directory-card" aria-labelledby="directory-title">
+
+        <div class="card-header">
+          <div>
+            <div class="title-row">
+              <h2 id="directory-title">All Skills</h2>
+              <span class="count-pill">{{ skills.length }}</span>
+            </div>
+            <p>View your organization's skill directory.</p>
+          </div>
+
+          <div class="search-box">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+            <input type="text"
+                   placeholder="Search skills..."
+                   aria-label="Search skills"
+                   [(ngModel)]="searchTerm" />
+          </div>
+        </div>
+
+        <div class="directory-body">
+          <div class="directory-scroll">
+
+            @if (isLoading) {
+            <div class="state-block">
+              <div class="spinner"></div>
+              <p>Loading skills...</p>
+            </div>
+            } @else if (filteredSkills.length === 0) {
+            <div class="state-block">
+              <div class="state-icon">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2l10 5-10 5L2 7l10-5z" />
+                  <path d="M2 17l10 5 10-5" />
+                  <path d="M2 12l10 5 10-5" />
+                </svg>
+              </div>
               <h3>
                 {{ searchTerm ? 'No matching skills found' : 'No skills available' }}
               </h3>
@@ -272,59 +342,105 @@
                     : 'Add your first skill to get started.'
                 }}
               </p>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+            } @else {
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col" class="col-id">Skill ID</th>
+                  <th scope="col">Skill Name</th>
+                  <th scope="col" class="col-status">Status</th>
+                </tr>
+              </thead>
 
-    <div class="table-footer" *ngIf="!isLoading">
-      <span>
-        Showing {{ filteredSkills.length }} of {{ skills.length }} skills
-      </span>
-    </div>
+              <tbody>
+                @for (skill of filteredSkills; track skill.skillId) {
+                <tr>
+                  <td class="skill-id">#{{ skill.skillId }}</td>
 
+                  <td>
+                    <div class="skill-name-cell">
+                      <span class="skill-avatar">{{ getInitial(skill.skillName) }}</span>
+                      <span>{{ skill.skillName }}</span>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span class="status-badge">Available</span>
+                  </td>
+                </tr>
+                }
+              </tbody>
+            </table>
+            }
+
+          </div>
+        </div>
+
+        <div class="card-footer">
+          @if (isLoading) {
+          Loading skills...
+          } @else {
+          Showing {{ filteredSkills.length }} of {{ skills.length }} skills
+          }
+        </div>
+
+      </section>
+
+    </div>
   </div>
 
-  <!-- Add Skill Modal -->
-  <div class="modal-overlay"
-       *ngIf="showAddForm"
-       (click)="closeAddForm()">
-    <div class="modal-card" (click)="$event.stopPropagation()">
+  <!-- ADD SKILL MODAL -->
+  @if (showAddForm) {
+  <div class="modal-overlay" (click)="closeAddForm()">
+    <div class="modal-card"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="add-skill-title"
+         (click)="$event.stopPropagation()">
 
       <div class="modal-header">
         <div>
-          <h2>Add New Skill</h2>
+          <h2 id="add-skill-title">Add New Skill</h2>
           <p>Add a technical skill to the organization directory.</p>
         </div>
 
-        <button class="close-btn"
+        <button type="button"
+                class="close-btn"
+                aria-label="Close"
                 (click)="closeAddForm()"
                 [disabled]="isSubmitting">
-          ×
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </button>
       </div>
 
-      <form (ngSubmit)="createSkill()">
+      <form (ngSubmit)="createSkill()" novalidate>
 
         <div class="form-group">
-          <label for="skillName">Skill Name <span>*</span></label>
+          <label for="skillName">Skill Name <span class="required">*</span></label>
 
-          <input id="skillName"
+          <input #skillInput
+                 id="skillName"
                  type="text"
                  name="skillName"
                  [(ngModel)]="skillName"
                  placeholder="e.g. Angular, C#, React"
+                 autocomplete="off"
                  minlength="2"
                  maxlength="100"
                  required />
 
-          <small>Enter a skill name between 2 and 100 characters.</small>
+          <div class="field-meta">
+            <small>Enter a skill name between 2 and 100 characters.</small>
+            <small>{{ skillName.length }}/100</small>
+          </div>
         </div>
 
-        <div class="modal-error" *ngIf="errorMessage">
-          {{ errorMessage }}
-        </div>
+        @if (formError) {
+        <div class="modal-error" role="alert">{{ formError }}</div>
+        }
 
         <div class="modal-actions">
           <button type="button"
@@ -345,5 +461,6 @@
 
     </div>
   </div>
+  }
 
-</div>
+</section>
