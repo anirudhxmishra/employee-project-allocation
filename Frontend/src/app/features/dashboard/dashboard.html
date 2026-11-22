@@ -1,4 +1,3 @@
-
 <section class="dashboard">
 
   <!-- Page Heading -->
@@ -33,7 +32,7 @@
         <p>Total Employees</p>
         <h2>{{ summary.totalEmployees }}</h2>
       </div>
-      <div class="stat-icon blue">E</div>
+      <div class="stat-icon blue-dark">E</div>
     </div>
 
     <div class="stat-card">
@@ -41,7 +40,7 @@
         <p>Allocated Employees</p>
         <h2>{{ summary.allocatedEmployees }}</h2>
       </div>
-      <div class="stat-icon green">A</div>
+      <div class="stat-icon blue">A</div>
     </div>
 
     <div class="stat-card">
@@ -49,7 +48,7 @@
         <p>Available Employees</p>
         <h2>{{ summary.availableEmployees }}</h2>
       </div>
-      <div class="stat-icon orange">R</div>
+      <div class="stat-icon blue-light">R</div>
     </div>
 
     <div class="stat-card">
@@ -57,7 +56,7 @@
         <p>Total Projects</p>
         <h2>{{ summary.totalProjects }}</h2>
       </div>
-      <div class="stat-icon purple">P</div>
+      <div class="stat-icon blue-dark">P</div>
     </div>
 
     <div class="stat-card">
@@ -73,7 +72,7 @@
         <p>Total Allocations</p>
         <h2>{{ summary.totalAllocations }}</h2>
       </div>
-      <div class="stat-icon orange">TA</div>
+      <div class="stat-icon blue-dark">TA</div>
     </div>
 
     <div class="stat-card">
@@ -81,7 +80,113 @@
         <p>Active Allocations</p>
         <h2>{{ summary.activeAllocations }}</h2>
       </div>
-      <div class="stat-icon green">AA</div>
+      <div class="stat-icon blue">AA</div>
+    </div>
+
+  </div>
+
+  <!-- Donut Charts -->
+  <div class="charts-grid">
+
+    @for (chart of charts; track chart.key) {
+    <div class="chart-card">
+
+      <div class="chart-header">
+        <h2>{{ chart.title }}</h2>
+        <p>{{ chart.subtitle }}</p>
+      </div>
+
+      <div class="donut-wrapper">
+        <svg class="donut"
+             viewBox="0 0 200 200"
+             role="img"
+             [attr.aria-label]="chart.title">
+
+          <!-- Background track -->
+          <circle class="donut-track"
+                  cx="100"
+                  cy="100"
+                  [attr.r]="donutRadius"></circle>
+
+          <!-- Slices -->
+          @for (slice of chart.slices; track slice.label; let i = $index) {
+          <circle class="donut-slice"
+                  [class.active]="isSliceActive(chart.key, i)"
+                  [class.dimmed]="isSliceDimmed(chart.key, i)"
+                  cx="100"
+                  cy="100"
+                  [attr.r]="donutRadius"
+                  [attr.stroke]="slice.color"
+                  [attr.stroke-dasharray]="slice.dashArray"
+                  [attr.stroke-dashoffset]="slice.dashOffset"
+                  tabindex="0"
+                  [attr.aria-label]="slice.label + ': ' + slice.value"
+                  (mouseenter)="setActiveSlice(chart.key, i)"
+                  (mouseleave)="clearActiveSlice()"
+                  (focus)="setActiveSlice(chart.key, i)"
+                  (blur)="clearActiveSlice()"></circle>
+          }
+        </svg>
+
+        <!-- Center label -->
+        <div class="donut-center">
+          @if (getActiveSlice(chart); as active) {
+          <span class="donut-value">{{ active.value }}</span>
+          <span class="donut-label">{{ active.label }} · {{ active.percent }}%</span>
+          } @else {
+          <span class="donut-value">{{ chart.total }}</span>
+          <span class="donut-label">Total {{ chart.totalLabel }}</span>
+          }
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <ul class="legend">
+        @for (slice of chart.slices; track slice.label; let i = $index) {
+        <li class="legend-item"
+            [class.active]="isSliceActive(chart.key, i)"
+            [class.dimmed]="isSliceDimmed(chart.key, i)"
+            (mouseenter)="setActiveSlice(chart.key, i)"
+            (mouseleave)="clearActiveSlice()">
+          <span class="legend-swatch" [style.background]="slice.color"></span>
+          <span class="legend-label">{{ slice.label }}</span>
+          <span class="legend-value">{{ slice.value }}</span>
+          <span class="legend-percent">{{ slice.percent }}%</span>
+        </li>
+        }
+      </ul>
+
+    </div>
+    }
+
+  </div>
+
+  <!-- Overview Bar Chart -->
+  <div class="chart-card">
+
+    <div class="chart-header">
+      <h2>Overview</h2>
+      <p>Comparison of all dashboard metrics</p>
+    </div>
+
+    <div class="bar-list">
+      @for (bar of barItems; track bar.label) {
+      <div class="bar-row"
+           [class.dimmed]="hoveredBarLabel !== null && hoveredBarLabel !== bar.label"
+           (mouseenter)="setHoveredBar(bar.label)"
+           (mouseleave)="clearHoveredBar()">
+
+        <span class="bar-label">{{ bar.label }}</span>
+
+        <div class="bar-track">
+          <div class="bar-fill"
+               [style.width.%]="bar.widthPercent"
+               [style.background]="bar.color"></div>
+        </div>
+
+        <span class="bar-value">{{ bar.value }}</span>
+      </div>
+      }
     </div>
 
   </div>
