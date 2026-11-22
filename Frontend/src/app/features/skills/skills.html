@@ -1,0 +1,349 @@
+
+<div class="skills-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Skills Management</h1>
+      <p>Manage technical skills and employee skill assignments.</p>
+    </div>
+
+    <button class="add-btn" (click)="openAddForm()">
+      <span class="plus-icon">+</span>
+      Add Skill
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div class="alert success-alert" *ngIf="successMessage">
+    <span>{{ successMessage }}</span>
+    <button (click)="clearMessages()">×</button>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">
+    <span>{{ errorMessage }}</span>
+    <button (click)="clearMessages()">×</button>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-card">
+    <div class="summary-icon">✦</div>
+    <div>
+      <p>Total Skills</p>
+      <h2>{{ skills.length }}</h2>
+    </div>
+  </div>
+
+  <!-- Employee Skills Assignment -->
+  <div class="content-card assignment-card">
+
+    <div class="table-header">
+      <div>
+        <h2>Employee Skill Assignment</h2>
+        <p>Drag and drop skills to manage employee assignments.</p>
+      </div>
+
+      <div class="employee-select">
+        <select [(ngModel)]="selectedEmployeeCode"
+                (ngModelChange)="onEmployeeChange()"
+                [disabled]="isLoadingEmployees || isSavingAssignments">
+          <option value="">
+            {{ isLoadingEmployees ? 'Loading employees...' : 'Select Employee' }}
+          </option>
+
+          <option *ngFor="let employee of employees"
+                  [value]="employee.employeeCode">
+            {{ employee.fullName }} ({{ employee.employeeCode }})
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" *ngIf="isLoadingEmployeeSkills">
+      <div class="spinner"></div>
+      <p>Loading employee skills...</p>
+    </div>
+
+    <!-- Error -->
+    <div class="employee-error" *ngIf="employeeSkillsError">
+      {{ employeeSkillsError }}
+    </div>
+
+    <div class="assignment-workspace"
+         *ngIf="selectedEmployeeCode && !isLoadingEmployeeSkills && !employeeSkillsError">
+
+      <!-- Available Skills -->
+      <div class="skill-drop-panel"
+           (dragover)="onDragOver($event)"
+           (drop)="dropOnAvailable($event)">
+        <div class="panel-heading">
+          <div>
+            <h3>Available Skills</h3>
+            <p>Drag skills into the assigned panel</p>
+          </div>
+
+          <span class="panel-count">
+            {{ availableSkills.length }}
+          </span>
+        </div>
+
+        <div class="skill-list">
+
+          <div class="draggable-skill"
+               *ngFor="let skill of availableSkills"
+               draggable="true"
+               (dragstart)="onDragStart(skill.skillId)"
+               (dragend)="draggedSkillId = null">
+            <div class="skill-avatar">
+              {{ skill.skillName.charAt(0).toUpperCase() }}
+            </div>
+
+            <span>{{ skill.skillName }}</span>
+
+            <span class="drag-icon">⠿</span>
+          </div>
+
+          <div class="panel-empty" *ngIf="availableSkills.length === 0">
+            All available skills have been assigned.
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Transfer Indicator -->
+      <div class="transfer-indicator">
+        <span>⇄</span>
+      </div>
+
+      <!-- Assigned Skills -->
+      <div class="skill-drop-panel assigned-panel"
+           (dragover)="onDragOver($event)"
+           (drop)="dropOnAssigned($event)">
+        <div class="panel-heading">
+          <div>
+            <h3>Assigned Skills</h3>
+            <p>Drop new skills here</p>
+          </div>
+
+          <span class="panel-count assigned-count">
+            {{ displayedAssignedSkills.length }}
+          </span>
+        </div>
+
+        <div class="skill-list">
+
+          <!-- Existing assignments -->
+          <div class="draggable-skill existing-skill"
+               *ngFor="let skill of employeeSkills">
+            <div class="skill-avatar">
+              {{ skill.skillName.charAt(0).toUpperCase() }}
+            </div>
+
+            <span>{{ skill.skillName }}</span>
+
+            <span class="existing-label">Saved</span>
+          </div>
+
+          <!-- Newly selected skills -->
+          <div class="draggable-skill pending-skill"
+               *ngFor="let skill of pendingSkills"
+               draggable="true"
+               (dragstart)="onDragStart(skill.skillId)"
+               (dragend)="draggedSkillId = null">
+            <div class="skill-avatar">
+              {{ skill.skillName.charAt(0).toUpperCase() }}
+            </div>
+
+            <span>{{ skill.skillName }}</span>
+
+            <span class="pending-label">New · Drag back to remove</span>
+          </div>
+
+          <div class="panel-empty"
+               *ngIf="displayedAssignedSkills.length === 0">
+            Drop skills here to assign them.
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Assignment Error -->
+    <div class="employee-error" *ngIf="assignmentError">
+      {{ assignmentError }}
+    </div>
+
+    <!-- Assignment Actions -->
+    <div class="assignment-footer"
+         *ngIf="selectedEmployeeCode && !isLoadingEmployeeSkills && !employeeSkillsError">
+      <span>
+        {{ pendingSkills.length }} unsaved skill(s)
+      </span>
+
+      <div class="assignment-actions">
+        <button class="cancel-btn"
+                type="button"
+                (click)="cancelAssignmentChanges()"
+                [disabled]="pendingSkills.length === 0 || isSavingAssignments">
+          Cancel
+        </button>
+
+        <button class="submit-btn"
+                type="button"
+                (click)="saveAssignments()"
+                [disabled]="pendingSkills.length === 0 || isSavingAssignments">
+          {{ isSavingAssignments ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Initial State -->
+    <div class="empty-state employee-empty"
+         *ngIf="!selectedEmployeeCode && !isLoadingEmployees && !employeeSkillsError">
+      <div class="empty-icon">♙</div>
+      <h3>Select an employee</h3>
+      <p>Choose an employee to manage their assigned skills.</p>
+    </div>
+
+  </div>
+
+  <!-- Skills Directory -->
+  <div class="content-card">
+
+    <div class="table-header">
+      <div>
+        <h2>All Skills</h2>
+        <p>View your organization's skill directory.</p>
+      </div>
+
+      <div class="search-box">
+        <span>⌕</span>
+        <input type="text"
+               placeholder="Search skills..."
+               [(ngModel)]="searchTerm" />
+      </div>
+    </div>
+
+    <div class="loading-state" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Loading skills...</p>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!isLoading">
+      <table>
+        <thead>
+          <tr>
+            <th>SKILL ID</th>
+            <th>SKILL NAME</th>
+            <th>STATUS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let skill of filteredSkills">
+            <td class="skill-id">#{{ skill.skillId }}</td>
+
+            <td>
+              <div class="skill-name-cell">
+                <div class="skill-avatar">
+                  {{ skill.skillName.charAt(0).toUpperCase() }}
+                </div>
+                <span>{{ skill.skillName }}</span>
+              </div>
+            </td>
+
+            <td>
+              <span class="status-badge">Available</span>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredSkills.length === 0">
+            <td colspan="3" class="empty-state">
+              <div class="empty-icon">✦</div>
+              <h3>
+                {{ searchTerm ? 'No matching skills found' : 'No skills available' }}
+              </h3>
+              <p>
+                {{
+                  searchTerm
+                    ? 'Try searching with a different skill name.'
+                    : 'Add your first skill to get started.'
+                }}
+              </p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-footer" *ngIf="!isLoading">
+      <span>
+        Showing {{ filteredSkills.length }} of {{ skills.length }} skills
+      </span>
+    </div>
+
+  </div>
+
+  <!-- Add Skill Modal -->
+  <div class="modal-overlay"
+       *ngIf="showAddForm"
+       (click)="closeAddForm()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div>
+          <h2>Add New Skill</h2>
+          <p>Add a technical skill to the organization directory.</p>
+        </div>
+
+        <button class="close-btn"
+                (click)="closeAddForm()"
+                [disabled]="isSubmitting">
+          ×
+        </button>
+      </div>
+
+      <form (ngSubmit)="createSkill()">
+
+        <div class="form-group">
+          <label for="skillName">Skill Name <span>*</span></label>
+
+          <input id="skillName"
+                 type="text"
+                 name="skillName"
+                 [(ngModel)]="skillName"
+                 placeholder="e.g. Angular, C#, React"
+                 minlength="2"
+                 maxlength="100"
+                 required />
+
+          <small>Enter a skill name between 2 and 100 characters.</small>
+        </div>
+
+        <div class="modal-error" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+        <div class="modal-actions">
+          <button type="button"
+                  class="cancel-btn"
+                  (click)="closeAddForm()"
+                  [disabled]="isSubmitting">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="submit-btn"
+                  [disabled]="isSubmitting || skillName.trim().length < 2">
+            {{ isSubmitting ? 'Adding...' : 'Add Skill' }}
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
