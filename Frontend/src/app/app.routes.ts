@@ -5,6 +5,7 @@ import { MainLayout } from './layout/main-layout/main-layout';
 import { Dashboard } from './features/dashboard/dashboard';
 import { Employees } from './features/employees/employees';
 import { Skills } from './features/skills/skills';
+import { Projects } from './features/projects/projects';
 
 export const routes: Routes = [
   {
@@ -22,6 +23,10 @@ export const routes: Routes = [
       {
         path: 'skills',
         component: Skills
+      },
+      {
+        path: 'projects',
+        component: Projects
       },
       {
         path: '',
