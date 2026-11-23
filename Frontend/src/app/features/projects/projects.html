@@ -1,0 +1,649 @@
+
+<div class="projects-page">
+
+  <!-- ================================= -->
+  <!-- DELETE CONFIRMATION MODAL -->
+  <!-- ================================= -->
+
+  <div class="modal-overlay" *ngIf="showDeleteModal">
+    <div class="delete-modal">
+
+      <div class="delete-icon">
+        !
+      </div>
+
+      <h3>Delete Project?</h3>
+
+      <p>
+        Are you sure you want to delete
+        <strong>{{ selectedProject?.projectName }}</strong>?
+      </p>
+
+      <p class="delete-warning">
+        This action cannot be undone.
+      </p>
+
+      <div class="form-error" *ngIf="deleteErrorMessage">
+        {{ deleteErrorMessage }}
+      </div>
+
+      <div class="modal-actions">
+
+        <button type="button"
+                class="btn-secondary"
+                [disabled]="deletingProject"
+                (click)="cancelDelete()">
+          Cancel
+        </button>
+
+        <button type="button"
+                class="btn-delete-confirm"
+                [disabled]="deletingProject"
+                (click)="confirmDelete()">
+          {{ deletingProject ? 'Deleting...' : 'Yes, Delete' }}
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ================================= -->
+  <!-- ADD / EDIT PROJECT MODAL -->
+  <!-- ================================= -->
+
+  <div class="modal-overlay" *ngIf="showForm">
+    <div class="project-modal">
+
+      <div class="modal-header">
+
+        <div>
+          <h3>
+            {{ isEditMode ? 'Edit Project' : 'Add New Project' }}
+          </h3>
+
+          <p>
+            {{
+              isEditMode
+                ? 'Update the project information below.'
+                : 'Enter the project information below.'
+            }}
+          </p>
+        </div>
+
+        <button type="button"
+                class="close-btn"
+                [disabled]="submitting"
+                (click)="closeCreateForm()">
+          ×
+        </button>
+
+      </div>
+
+
+      <form [formGroup]="projectForm"
+            (ngSubmit)="isEditMode ? updateProject() : createProject()">
+
+        <div class="form-error" *ngIf="formErrorMessage">
+          {{ formErrorMessage }}
+        </div>
+
+        <div class="form-grid">
+
+          <!-- Project Code -->
+          <div class="form-group">
+
+            <label>Project Code *</label>
+
+            <input type="text"
+                   formControlName="projectCode"
+                   placeholder="e.g. PRJ004"
+                   [readonly]="isEditMode">
+
+            <small *ngIf="projectForm.controls['projectCode'].touched &&
+                     projectForm.controls['projectCode'].invalid">
+              Project code is required (2–20 characters).
+            </small>
+
+          </div>
+
+
+          <!-- Project Name -->
+          <div class="form-group">
+
+            <label>Project Name *</label>
+
+            <input type="text"
+                   formControlName="projectName"
+                   placeholder="Enter project name">
+
+            <small *ngIf="projectForm.controls['projectName'].touched &&
+                     projectForm.controls['projectName'].invalid">
+              Project name is required (2–150 characters).
+            </small>
+
+          </div>
+
+
+          <!-- Client Name -->
+          <div class="form-group">
+
+            <label>Client Name *</label>
+
+            <input type="text"
+                   formControlName="clientName"
+                   placeholder="Enter client name">
+
+            <small *ngIf="projectForm.controls['clientName'].touched &&
+                     projectForm.controls['clientName'].invalid">
+              Client name is required (2–100 characters).
+            </small>
+
+          </div>
+
+
+          <!-- Technology -->
+          <div class="form-group">
+
+            <label>Technology</label>
+
+            <input type="text"
+                   formControlName="technology"
+                   placeholder="e.g. .NET 10, Angular">
+
+          </div>
+
+
+          <!-- Required Employees -->
+          <div class="form-group">
+
+            <label>Required Employees *</label>
+
+            <input type="number"
+                   formControlName="requiredEmployees"
+                   min="1">
+
+            <small *ngIf="projectForm.controls['requiredEmployees'].touched &&
+                     projectForm.controls['requiredEmployees'].invalid">
+              At least one employee is required.
+            </small>
+
+          </div>
+
+
+          <!-- Location -->
+          <div class="form-group">
+
+            <label>Location</label>
+
+            <input type="text"
+                   formControlName="location"
+                   placeholder="e.g. Delhi">
+
+          </div>
+
+
+          <!-- Start Date -->
+          <div class="form-group">
+
+            <label>Start Date</label>
+
+            <input type="date"
+                   formControlName="startDate">
+
+          </div>
+
+
+          <!-- End Date -->
+          <div class="form-group">
+
+            <label>End Date</label>
+
+            <input type="date"
+                   formControlName="endDate">
+
+          </div>
+
+
+          <!-- Status: Edit Only -->
+          <div class="form-group" *ngIf="isEditMode">
+
+            <label>Project Status *</label>
+
+            <select formControlName="status">
+
+              <option value="Active">Active</option>
+
+              <option value="Inactive">Inactive</option>
+
+              <option value="Completed">Completed</option>
+
+            </select>
+
+            <small *ngIf="projectForm.controls['status'].touched &&
+                     projectForm.controls['status'].invalid">
+              Please select a project status.
+            </small>
+
+          </div>
+
+        </div>
+
+
+        <!-- Form Actions -->
+        <div class="modal-actions">
+
+          <button type="button"
+                  class="btn-secondary"
+                  [disabled]="submitting"
+                  (click)="closeCreateForm()">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="btn-primary"
+                  [disabled]="submitting">
+
+            {{
+              submitting
+                ? (isEditMode ? 'Updating...' : 'Creating...')
+                : (isEditMode ? 'Update Project' : 'Create Project')
+            }}
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+
+  <!-- ================================= -->
+  <!-- PAGE HEADER -->
+  <!-- ================================= -->
+
+  <div class="page-header">
+
+    <div>
+      <div class="page-title-row">
+        <h2>Project Management</h2>
+
+        <span class="project-count">
+          {{ projects.length }} Projects
+        </span>
+      </div>
+
+      <p>
+        Manage and monitor all organizational projects.
+      </p>
+    </div>
+
+    <button type="button"
+            class="btn-primary add-project-btn"
+            (click)="openCreateForm()">
+      <span class="plus-icon">+</span>
+      Add Project
+    </button>
+
+  </div>
+
+
+  <!-- ================================= -->
+  <!-- SUCCESS MESSAGE -->
+  <!-- ================================= -->
+
+  <div class="success-message" *ngIf="successMessage">
+
+    <span class="success-icon">✓</span>
+
+    {{ successMessage }}
+
+    <button type="button"
+            class="message-close"
+            (click)="successMessage = ''">
+      ×
+    </button>
+
+  </div>
+
+
+  <!-- ================================= -->
+  <!-- LOADING STATE -->
+  <!-- ================================= -->
+
+  <div class="loading-state" *ngIf="loading">
+
+    <div class="loader"></div>
+
+    <span>Loading projects...</span>
+
+  </div>
+
+
+  <!-- ================================= -->
+  <!-- ERROR STATE -->
+  <!-- ================================= -->
+
+  <div class="error-state" *ngIf="!loading && errorMessage">
+
+    <p>{{ errorMessage }}</p>
+
+    <button type="button"
+            class="btn-secondary"
+            (click)="loadProjects()">
+      Retry
+    </button>
+
+  </div>
+
+
+  <!-- ================================= -->
+  <!-- PROJECT CONTENT -->
+  <!-- ================================= -->
+
+  <ng-container *ngIf="!loading && !errorMessage">
+
+
+    <!-- SEARCH AND FILTER TOOLBAR -->
+    <div class="toolbar">
+
+      <div class="search-box">
+
+        <span class="search-icon">⌕</span>
+
+        <input type="text"
+               placeholder="Search by project code, name or client..."
+               [value]="searchTerm"
+               (input)="onSearchChange($event)">
+
+        <button type="button"
+                class="clear-search"
+                *ngIf="searchTerm"
+                (click)="clearFilters()">
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="filter-group">
+
+        <label for="projectStatusFilter">
+          Status
+        </label>
+
+        <select id="projectStatusFilter"
+                [value]="statusFilter"
+                (change)="onStatusFilterChange($event)">
+
+          <option value="All">All Statuses</option>
+
+          <option value="Active">Active</option>
+
+          <option value="Inactive">Inactive</option>
+
+          <option value="Completed">Completed</option>
+
+        </select>
+
+      </div>
+
+
+      <button type="button"
+              class="btn-clear"
+              *ngIf="searchTerm || statusFilter !== 'All'"
+              (click)="clearFilters()">
+        Clear Filters
+      </button>
+
+    </div>
+
+
+    <!-- ================================= -->
+    <!-- PROJECT TABLE -->
+    <!-- ================================= -->
+
+    <div class="table-container">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Project</th>
+
+            <th>Client</th>
+
+            <th>Technology</th>
+
+            <th>Required</th>
+
+            <th>Location</th>
+
+            <th>Timeline</th>
+
+            <th>Status</th>
+
+            <th>Actions</th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr *ngFor="let project of paginatedProjects">
+
+            <!-- Project Information -->
+            <td>
+
+              <div class="project-info">
+
+                <span class="project-code">
+                  {{ project.projectCode }}
+                </span>
+
+                <span class="project-name">
+                  {{ project.projectName }}
+                </span>
+
+              </div>
+
+            </td>
+
+
+            <!-- Client -->
+            <td>
+              <span class="client-name">
+                {{ project.clientName }}
+              </span>
+            </td>
+
+
+            <!-- Technology -->
+            <td>
+              <span class="technology-text">
+                {{ project.technology || '-' }}
+              </span>
+            </td>
+
+
+            <!-- Required Employees -->
+            <td>
+              <span class="employee-count">
+                {{ project.requiredEmployees }}
+              </span>
+            </td>
+
+
+            <!-- Location -->
+            <td>
+              {{ project.location || '-' }}
+            </td>
+
+
+            <!-- Timeline -->
+            <td>
+
+              <div class="timeline">
+
+                <span>
+                  {{
+ project.startDate
+                    ? (project.startDate | date:'dd MMM yyyy')
+                    : '-'
+                  }}
+                </span>
+
+                <span class="timeline-separator">→</span>
+
+                <span>
+                  {{
+ project.endDate
+                    ? (project.endDate | date:'dd MMM yyyy')
+                    : '-'
+                  }}
+                </span>
+
+              </div>
+
+            </td>
+
+
+            <!-- Status -->
+            <td>
+
+              <span class="status-badge"
+                    [ngClass]="{
+                  'active': project.status === 'Active',
+                  'inactive': project.status === 'Inactive',
+                  'completed': project.status === 'Completed'
+                }">
+
+                <span class="status-dot"></span>
+
+                {{ project.status }}
+
+              </span>
+
+            </td>
+
+
+            <!-- Actions -->
+            <td>
+
+              <div class="action-buttons">
+
+                <button type="button"
+                        class="btn-edit"
+                        title="Edit project"
+                        (click)="openEditForm(project)">
+                  Edit
+                </button>
+
+                <button type="button"
+                        class="btn-delete"
+                        title="Delete project"
+                        (click)="openDeleteConfirmation(project)">
+                  Delete
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+
+          <!-- Empty State -->
+          <tr *ngIf="filteredProjects.length === 0">
+
+            <td colspan="8">
+
+              <div class="empty-state">
+
+                <div class="empty-icon">⌕</div>
+
+                <h3>No projects found</h3>
+
+                <p>
+                  {{
+                    searchTerm || statusFilter !== 'All'
+                      ? 'Try changing your search or filters.'
+                      : 'Start by adding your first project.'
+                  }}
+                </p>
+
+                <button type="button"
+                        class="btn-secondary"
+                        *ngIf="searchTerm || statusFilter !== 'All'"
+                        (click)="clearFilters()">
+                  Clear Filters
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <!-- ================================= -->
+    <!-- TABLE FOOTER / PAGINATION -->
+    <!-- ================================= -->
+
+    <div class="table-footer" *ngIf="filteredProjects.length > 0">
+
+      <div class="pagination-info">
+
+        Showing
+
+        <strong>{{ startItem }}–{{ endItem }}</strong>
+
+        of
+
+        <strong>{{ filteredProjects.length }}</strong>
+
+        projects
+
+      </div>
+
+
+      <div class="pagination-controls">
+
+        <button type="button"
+                class="pagination-btn"
+                [disabled]="currentPage === 1"
+                (click)="previousPage()">
+          Previous
+        </button>
+
+        <span class="page-indicator">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+
+        <button type="button"
+                class="pagination-btn"
+                [disabled]="currentPage === totalPages"
+                (click)="nextPage()">
+          Next
+        </button>
+
+      </div>
+
+    </div>
+
+  </ng-container>
+
+</div>
