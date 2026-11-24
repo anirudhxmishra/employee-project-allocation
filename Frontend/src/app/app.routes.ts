@@ -6,6 +6,7 @@ import { Dashboard } from './features/dashboard/dashboard';
 import { Employees } from './features/employees/employees';
 import { Skills } from './features/skills/skills';
 import { Projects } from './features/projects/projects';
+import { ProjectSkills } from './features/project-skills/project-skills';
 
 export const routes: Routes = [
   {
@@ -27,6 +28,10 @@ export const routes: Routes = [
       {
         path: 'projects',
         component: Projects
+      },
+      {
+        path: 'project-skills',
+        component: ProjectSkills
       },
       {
         path: '',
