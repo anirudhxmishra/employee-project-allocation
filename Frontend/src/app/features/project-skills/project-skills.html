@@ -1,0 +1,160 @@
+
+<div class="project-skills-page">
+
+  <div class="page-header">
+    <div>
+      <h1>Project Skills</h1>
+      <p>Manage the technical skills required for each project.</p>
+    </div>
+  </div>
+
+  <div class="message success-message" *ngIf="successMessage">
+    <span>{{ successMessage }}</span>
+    <button type="button" (click)="successMessage = ''">×</button>
+  </div>
+
+  <div class="message error-message" *ngIf="errorMessage">
+    <span>{{ errorMessage }}</span>
+    <button type="button" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <section class="project-selector card">
+    <label for="projectSelect">Select Project</label>
+
+    <select id="projectSelect"
+            [value]="selectedProjectId ?? ''"
+            (change)="onProjectChange($event)"
+            [disabled]="loadingProjects">
+      <option value="">Choose a project</option>
+
+      <option *ngFor="let project of projects"
+              [value]="project.projectId">
+        {{ project.projectCode }} - {{ project.projectName }}
+      </option>
+    </select>
+
+    <p class="loading-text" *ngIf="loadingProjects">
+      Loading projects...
+    </p>
+  </section>
+
+  <div *ngIf="selectedProject as project">
+
+    <section class="project-info card">
+      <div>
+        <span class="info-label">Project Code</span>
+        <strong>{{ project.projectCode }}</strong>
+      </div>
+
+      <div>
+        <span class="info-label">Project Name</span>
+        <strong>{{ project.projectName }}</strong>
+      </div>
+
+      <div>
+        <span class="info-label">Client</span>
+        <strong>{{ project.clientName }}</strong>
+      </div>
+
+      <div>
+        <span class="info-label">Technology</span>
+        <strong>{{ project.technology || 'Not specified' }}</strong>
+      </div>
+    </section>
+
+    <div class="skills-layout">
+
+      <section class="skills-card card">
+        <div class="section-heading">
+          <div>
+            <h2>Available Skills</h2>
+            <p>Select skills to add to this project.</p>
+          </div>
+
+          <span class="count-badge">{{ availableSkills.length }}</span>
+        </div>
+
+        <div *ngIf="loadingSkills" class="empty-state">
+          Loading skills...
+        </div>
+
+        <div *ngIf="!loadingSkills && availableSkills.length === 0"
+             class="empty-state">
+          All available skills have been assigned.
+        </div>
+
+        <div class="skill-list" *ngIf="!loadingSkills">
+          <label class="skill-item"
+                 *ngFor="let skill of availableSkills">
+            <input type="checkbox"
+                   [checked]="isSkillSelected(skill.skillId)"
+                   (change)="toggleSkill(skill.skillId, $event)" />
+
+            <span>{{ skill.skillName }}</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="skills-card card">
+        <div class="section-heading">
+          <div>
+            <h2>Assigned Skills</h2>
+            <p>Skills currently required by this project.</p>
+          </div>
+
+          <span class="count-badge assigned-count">
+            {{ assignedSkills.length }}
+          </span>
+        </div>
+
+        <div *ngIf="loadingAssignments" class="empty-state">
+          Loading assigned skills...
+        </div>
+
+        <div *ngIf="!loadingAssignments && assignedSkills.length === 0"
+             class="empty-state">
+          No skills assigned to this project yet.
+        </div>
+
+        <div class="assigned-skill-list" *ngIf="!loadingAssignments">
+          <div class="assigned-skill"
+               *ngFor="let skill of assignedSkills">
+            <span class="skill-check">✓</span>
+            <span>{{ skill.skillName }}</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <section class="action-panel card">
+      <div>
+        <strong>{{ selectedSkillIds.length }} skills selected</strong>
+        <p>Selected skills will be added to the project.</p>
+      </div>
+
+      <div class="actions">
+        <button type="button"
+                class="btn btn-secondary"
+                (click)="clearSelection()"
+                [disabled]="selectedSkillIds.length === 0 || saving">
+          Clear
+        </button>
+
+        <button type="button"
+                class="btn btn-primary"
+                (click)="saveProjectSkills()"
+                [disabled]="selectedSkillIds.length === 0 || saving">
+          {{ saving ? 'Saving...' : 'Save Skills' }}
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <section class="empty-project card" *ngIf="!selectedProjectId">
+    <h2>Select a project to continue</h2>
+    <p>Choose a project above to view and manage its required skills.</p>
+  </section>
+
+</div>
