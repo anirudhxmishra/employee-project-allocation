@@ -41,7 +41,8 @@ export class Sidebar {
     { label: 'Projects', route: '/projects', icon: 'projects' },
     { label: 'Resource Pool', route: '/resource-pool', icon: 'resource-pool' },
     { label: 'Project Candidates', route: '/project-candidates', icon: 'candidates' },
-    { label: 'Allocations', route: '/allocations', icon: 'allocations' }
+    { label: 'Allocations', route: '/allocations', icon: 'allocations' },
+    { label: 'Project Skills', route: '/project-skills', icon: 'project-skills'}
   ];
 
 }
