@@ -1,21 +1,17 @@
 
 <aside class="sidebar">
-
   <div class="brand">
     <h2>Employee Portal</h2>
   </div>
 
   <nav class="navigation">
-
     <p class="menu-heading">MAIN MENU</p>
 
     @for (item of navigationItems; track item.route) {
-
     <a class="nav-item"
        [routerLink]="item.route"
        routerLinkActive="active"
        ariaCurrentWhenActive="page">
-
       @switch (item.icon) {
       @case ('dashboard') {
       <svg lucideHouse [size]="20"></svg>
@@ -29,6 +25,9 @@
       @case ('projects') {
       <svg lucideBriefcaseBusiness [size]="20"></svg>
       }
+      @case ('project-skills') {
+      <svg lucideGraduationCap [size]="20"></svg>
+      }
       @case ('resource-pool') {
       <svg lucideUserRoundSearch [size]="20"></svg>
       }
@@ -41,11 +40,7 @@
       }
 
       <span>{{ item.label }}</span>
-
     </a>
-
     }
-
   </nav>
-
 </aside>
