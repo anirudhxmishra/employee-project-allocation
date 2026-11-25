@@ -8,6 +8,7 @@ import { Skills } from './features/skills/skills';
 import { Projects } from './features/projects/projects';
 import { ProjectSkills } from './features/project-skills/project-skills';
 import { ResourcePool } from './features/resource-pool/resource-pool';
+import { ProjectCandidates } from './features/project-candidates/project-candidates';
 
 export const routes: Routes = [
   {
@@ -37,6 +38,10 @@ export const routes: Routes = [
       {
         path: 'resource-pool',
         component: ResourcePool
+      },
+      {
+        path:'project-candidates',
+        component: ProjectCandidates 
       },
       {
         path: '',
