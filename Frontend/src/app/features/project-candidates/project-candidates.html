@@ -1,0 +1,449 @@
+
+<div class="candidates-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Project Candidates</h1>
+      <p>Manage shortlisted employees and track their selection progress.</p>
+    </div>
+
+    <button class="btn-primary"
+            (click)="openAddModal()"
+            [disabled]="selectedProjectId === null">
+      <span>+</span> Add Candidate
+    </button>
+  </div>
+
+  <!-- Project Selection -->
+  <div class="project-selector">
+    <div class="selector-content">
+      <label for="projectSelect">Select Project</label>
+      <select id="projectSelect"
+              [(ngModel)]="selectedProjectId"
+              (ngModelChange)="onProjectChange()">
+        <option [ngValue]="null">Select a project</option>
+        <option *ngFor="let project of projects"
+                [ngValue]="project.projectId">
+          {{ project.projectCode }} - {{ project.projectName }}
+        </option>
+      </select>
+    </div>
+
+    <button class="btn-refresh" (click)="loadCandidates()">
+      ↻ Refresh
+    </button>
+  </div>
+
+  <!-- Notifications -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    <span>{{ successMessage }}</span>
+    <button (click)="clearMessages()">×</button>
+  </div>
+
+  <div class="alert alert-error" *ngIf="errorMessage && !modalType">
+    <span>{{ errorMessage }}</span>
+    <button (click)="clearMessages()">×</button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+    <div class="summary-card total">
+      <div class="summary-icon">👥</div>
+      <div>
+        <span>Total Candidates</span>
+        <h2>{{ totalCandidates }}</h2>
+      </div>
+    </div>
+
+    <div class="summary-card selected">
+      <div class="summary-icon">✓</div>
+      <div>
+        <span>Selected</span>
+        <h2>{{ selectedCount }}</h2>
+      </div>
+    </div>
+
+    <div class="summary-card interview">
+      <div class="summary-icon">📅</div>
+      <div>
+        <span>Interview Scheduled</span>
+        <h2>{{ interviewCount }}</h2>
+      </div>
+    </div>
+
+    <div class="summary-card rejected">
+      <div class="summary-icon">×</div>
+      <div>
+        <span>Rejected</span>
+        <h2>{{ rejectedCount }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Candidate Table -->
+  <section class="table-section">
+
+    <div class="table-header">
+      <div>
+        <h2>Candidate List</h2>
+        <p>Review and manage project candidates.</p>
+      </div>
+
+      <div class="table-filters">
+        <input type="text"
+               placeholder="Search employee..."
+               [(ngModel)]="searchTerm"
+               (ngModelChange)="onSearchChange()">
+
+        <select [(ngModel)]="statusFilter"
+                (ngModelChange)="onStatusFilterChange()">
+          <option value="All">All Statuses</option>
+          <option value="Selected">Selected</option>
+          <option value="InterviewScheduled">Interview Scheduled</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="loading-state" *ngIf="loading">
+      Loading candidates...
+    </div>
+
+    <div class="empty-state"
+         *ngIf="!loading && selectedProjectId === null">
+      <h3>Select a project</h3>
+      <p>Choose a project to view its candidates.</p>
+    </div>
+
+    <div class="empty-state"
+         *ngIf="!loading && selectedProjectId !== null && filteredCandidates.length === 0">
+      <h3>No candidates found</h3>
+      <p>No candidates match your current search or status filter.</p>
+      <button class="btn-primary" (click)="openAddModal()">
+        Add Candidate
+      </button>
+    </div>
+
+    <div class="table-responsive"
+         *ngIf="!loading && paginatedCandidates.length > 0">
+
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Employee Code</th>
+            <th>Project</th>
+            <th>Shortlisted On</th>
+            <th>Interview Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let candidate of paginatedCandidates">
+
+            <td>
+              <div class="employee-cell">
+                <div class="avatar">
+                  {{ candidate.employeeName.charAt(0).toUpperCase() }}
+                </div>
+                <strong>{{ candidate.employeeName }}</strong>
+              </div>
+            </td>
+
+            <td>{{ candidate.employeeCode }}</td>
+
+            <td>
+              <div class="project-cell">
+                <strong>{{ candidate.projectCode }}</strong>
+                <small>{{ candidate.projectName }}</small>
+              </div>
+            </td>
+
+            <td>{{ candidate.shortlistedOn | date:'dd MMM yyyy' }}</td>
+
+            <td>
+              <span *ngIf="candidate.interviewDate">
+                {{ candidate.interviewDate | date:'dd MMM yyyy, h:mm a' }}
+              </span>
+              <span class="muted" *ngIf="!candidate.interviewDate">
+                Not scheduled
+              </span>
+            </td>
+
+            <td>
+              <span class="status-badge"
+                    [ngClass]="getStatusClass(candidate.status)">
+                {{ getStatusLabel(candidate.status) }}
+              </span>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon details"
+                        title="View details"
+                        (click)="openDetails(candidate)">
+                  View
+                </button>
+
+                <button class="btn-icon edit"
+                        title="Update status"
+                        (click)="openStatusModal(candidate)">
+                  Update
+                </button>
+              </div>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination"
+         *ngIf="!loading && filteredCandidates.length > 0">
+
+      <span>
+        Showing
+        {{ (currentPage - 1) * pageSize + 1 }}
+        -
+        {{ Math.min(currentPage * pageSize, filteredCandidates.length) }}
+        of {{ filteredCandidates.length }} candidates
+      </span>
+
+      <div class="pagination-actions">
+        <button (click)="previousPage()"
+                [disabled]="currentPage === 1">
+          Previous
+        </button>
+
+        <span>Page {{ currentPage }} of {{ totalPages }}</span>
+
+        <button (click)="nextPage()"
+                [disabled]="currentPage >= totalPages">
+          Next
+        </button>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+
+<!-- ADD CANDIDATE MODAL -->
+<div class="modal-backdrop"
+     *ngIf="modalType === 'add'"
+     (click)="closeModal()">
+
+  <div class="modal"
+       (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div>
+        <h2>Add Candidate</h2>
+        <p>Shortlist an available employee for this project.</p>
+      </div>
+      <button class="close-button" (click)="closeModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label>Select Employee <span>*</span></label>
+
+        <select [(ngModel)]="selectedEmployeeCode">
+          <option value="">Choose an employee</option>
+          <option *ngFor="let employee of availableEmployees"
+                  [value]="employee.employeeCode">
+            {{ employee.fullName }} ({{ employee.employeeCode }})
+          </option>
+        </select>
+
+        <small *ngIf="availableEmployees.length === 0">
+          No eligible employees are currently available for this project.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Remarks</label>
+        <textarea rows="3"
+                  [(ngModel)]="addRemarks"
+                  placeholder="Enter shortlisting remarks...">
+        </textarea>
+      </div>
+
+      <div class="modal-error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeModal()">
+        Cancel
+      </button>
+
+      <button class="btn-primary"
+              (click)="addCandidate()"
+              [disabled]="saving || !selectedEmployeeCode">
+        {{ saving ? 'Adding...' : 'Add Candidate' }}
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- UPDATE STATUS MODAL -->
+<div class="modal-backdrop"
+     *ngIf="modalType === 'status'"
+     (click)="closeModal()">
+
+  <div class="modal"
+       (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div>
+        <h2>Update Candidate</h2>
+        <p *ngIf="selectedCandidate">
+          {{ selectedCandidate.employeeName }}
+          · {{ selectedCandidate.employeeCode }}
+        </p>
+      </div>
+      <button class="close-button" (click)="closeModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label>Candidate Status <span>*</span></label>
+        <select [(ngModel)]="editStatus">
+          <option value="Selected">Selected</option>
+          <option value="InterviewScheduled">Interview Scheduled</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Role</label>
+        <input type="text"
+               [(ngModel)]="editRole"
+               placeholder="e.g. .NET Developer">
+      </div>
+
+      <div class="form-group"
+           *ngIf="editStatus === 'InterviewScheduled'">
+        <label>Interview Date & Time <span>*</span></label>
+        <input type="datetime-local"
+               [(ngModel)]="editInterviewDate">
+      </div>
+
+      <div class="form-group">
+        <label>Remarks</label>
+        <textarea rows="3"
+                  [(ngModel)]="editRemarks"
+                  placeholder="Enter evaluation remarks...">
+        </textarea>
+      </div>
+
+      <div class="modal-error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeModal()">
+        Cancel
+      </button>
+
+      <button class="btn-primary"
+              (click)="updateStatus()"
+              [disabled]="saving">
+        {{ saving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- CANDIDATE DETAILS MODAL -->
+<div class="modal-backdrop"
+     *ngIf="modalType === 'details'"
+     (click)="closeModal()">
+
+  <div class="modal"
+       (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div>
+        <h2>Candidate Details</h2>
+        <p>Candidate information and evaluation history.</p>
+      </div>
+      <button class="close-button" (click)="closeModal()">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedCandidate">
+
+      <div class="detail-heading">
+        <div class="avatar large">
+          {{ selectedCandidate.employeeName.charAt(0).toUpperCase() }}
+        </div>
+        <div>
+          <h3>{{ selectedCandidate.employeeName }}</h3>
+          <p>{{ selectedCandidate.employeeCode }}</p>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div>
+          <label>Project Code</label>
+          <strong>{{ selectedCandidate.projectCode }}</strong>
+        </div>
+
+        <div>
+          <label>Project Name</label>
+          <strong>{{ selectedCandidate.projectName }}</strong>
+        </div>
+
+        <div>
+          <label>Status</label>
+          <span class="status-badge"
+                [ngClass]="getStatusClass(selectedCandidate.status)">
+            {{ getStatusLabel(selectedCandidate.status) }}
+          </span>
+        </div>
+
+        <div>
+          <label>Shortlisted On</label>
+          <strong>{{ formatDate(selectedCandidate.shortlistedOn) }}</strong>
+        </div>
+
+        <div>
+          <label>Interview Date</label>
+          <strong>{{ formatDate(selectedCandidate.interviewDate) }}</strong>
+        </div>
+
+        <div class="full-width">
+          <label>Remarks</label>
+          <p>{{ selectedCandidate.remarks || 'No remarks available.' }}</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeModal()">
+        Close
+      </button>
+      <button class="btn-primary"
+              (click)="openStatusModal(selectedCandidate!)">
+        Update Status
+      </button>
+    </div>
+
+  </div>
+</div>
