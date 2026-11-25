@@ -1,0 +1,310 @@
+<div class="resource-pool-page">
+
+  <!-- PAGE HEADER -->
+  <header class="page-header">
+    <div class="page-title">
+      <h1>Resource Pool</h1>
+      <p>Find available employees for project allocation.</p>
+    </div>
+
+    <button type="button"
+            class="btn btn-outline"
+            (click)="refresh()"
+            [disabled]="loading">
+      <span class="btn-icon" [class.spinning]="loading">↻</span>
+      Refresh
+    </button>
+  </header>
+
+  <!-- ERROR MESSAGE -->
+  <div class="alert error-alert" role="alert" *ngIf="errorMessage">
+    <span>{{ errorMessage }}</span>
+    <button type="button" aria-label="Dismiss" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- SUMMARY -->
+  <section class="summary-bar" aria-label="Summary">
+    <div class="summary-item">
+      <div class="summary-icon blue">👥</div>
+      <div class="summary-text">
+        <span>Available Employees</span>
+        <strong>{{ totalEmployees }}</strong>
+      </div>
+    </div>
+
+    <div class="summary-item">
+      <div class="summary-icon green">✓</div>
+      <div class="summary-text">
+        <span>Technical Skills</span>
+        <strong>{{ totalSkills }}</strong>
+      </div>
+    </div>
+
+    <div class="summary-item">
+      <div class="summary-icon orange">⌖</div>
+      <div class="summary-text">
+        <span>Locations</span>
+        <strong>{{ totalLocations }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTERS -->
+  <section class="card filters-card">
+
+    <div class="filters-top">
+      <div class="filter-field project-field">
+        <label for="projectSelect">Project Requirement</label>
+
+        <select id="projectSelect"
+                [(ngModel)]="selectedProjectId"
+                (ngModelChange)="onProjectChange()"
+                [disabled]="loadingProjects || loading">
+          <option [ngValue]="null">All Available Employees</option>
+
+          <option *ngFor="let project of projects; trackBy: trackByProject"
+                  [ngValue]="project.projectId">
+            {{ project.projectCode }} - {{ project.projectName }}
+          </option>
+        </select>
+      </div>
+
+      <button type="button"
+              class="link-btn"
+              (click)="clearFilters()"
+              [disabled]="!hasActiveFilters || loading">
+        Clear all filters
+      </button>
+    </div>
+
+    <p class="filter-note" *ngIf="selectedProjectId !== null">
+      Showing employees who have all the skills required by the selected project.
+    </p>
+
+    <div class="filters-grid">
+      <div class="filter-field search-field">
+        <label for="searchInput">Search</label>
+        <input id="searchInput"
+               type="text"
+               [(ngModel)]="searchTerm"
+               placeholder="Name, employee code or email" />
+      </div>
+
+      <div class="filter-field">
+        <label for="locationSelect">Location</label>
+        <select id="locationSelect" [(ngModel)]="selectedLocation">
+          <option value="">All Locations</option>
+          <option *ngFor="let location of locations" [value]="location">
+            {{ location }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="skillSelect">Technical Skill</label>
+        <select id="skillSelect" [(ngModel)]="selectedSkill">
+          <option value="">All Skills</option>
+          <option *ngFor="let skill of skills" [value]="skill">
+            {{ skill }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- EMPLOYEE TABLE -->
+  <section class="card employees-section">
+
+    <div class="table-heading">
+      <h2>Available Employees</h2>
+      <span class="result-count">
+        Showing {{ filteredEmployees.length }} of {{ totalEmployees }}
+      </span>
+    </div>
+
+    <!-- LOADING -->
+    <div class="state-box" *ngIf="loading">
+      <div class="loader"></div>
+      <p>Loading available employees...</p>
+    </div>
+
+    <!-- EMPTY -->
+    <div class="state-box" *ngIf="!loading && filteredEmployees.length === 0">
+      <div class="empty-icon">👥</div>
+      <h3>No employees found</h3>
+      <p>No available employees match the selected filters.</p>
+      <button type="button" class="btn btn-outline" (click)="clearFilters()">
+        Reset Filters
+      </button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrapper" *ngIf="!loading && filteredEmployees.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Location</th>
+            <th>Technical Skills</th>
+            <th>Training</th>
+            <th>Shortlisted Projects</th>
+            <th class="col-action">Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let employee of filteredEmployees; trackBy: trackByEmployee">
+
+            <td>
+              <div class="employee-cell">
+                <div class="avatar">{{ employee.fullName.charAt(0).toUpperCase() }}</div>
+                <div class="employee-info">
+                  <strong>{{ employee.fullName }}</strong>
+                  <span class="code">{{ employee.employeeCode }}</span>
+                  <small>{{ employee.email }}</small>
+                </div>
+              </div>
+            </td>
+
+            <td class="nowrap">{{ employee.location || 'Not specified' }}</td>
+
+            <td>
+              <div class="tags" *ngIf="employee.skills?.length; else noSkills">
+                <span class="tag" *ngFor="let skill of visibleSkills(employee)">{{ skill }}</span>
+                <span class="tag tag-more"
+                      *ngIf="hiddenSkillCount(employee) > 0"
+                      [title]="hiddenSkills(employee)">
+                  +{{ hiddenSkillCount(employee) }}
+                </span>
+              </div>
+              <ng-template #noSkills>
+                <span class="muted">No skills added</span>
+              </ng-template>
+            </td>
+
+            <td>
+              <div class="training">
+                <strong>{{ employee.trainingName || 'Not specified' }}</strong>
+                <small *ngIf="employee.trainingCompletedOn">
+                  {{ employee.trainingCompletedOn | date:'dd MMM yyyy' }}
+                </small>
+              </div>
+            </td>
+
+            <td>
+              <div class="shortlist" *ngIf="employee.shortlistedProjects?.length; else notShortlisted">
+                <div class="shortlist-item"
+                     *ngFor="let project of employee.shortlistedProjects">
+                  <span class="shortlist-name">{{ project.projectName }}</span>
+                  <span class="badge">{{ project.status }}</span>
+                </div>
+              </div>
+              <ng-template #notShortlisted>
+                <span class="muted">Not shortlisted</span>
+              </ng-template>
+            </td>
+
+            <td class="col-action">
+              <button type="button" class="view-btn" (click)="viewEmployee(employee)">
+                View
+              </button>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <!-- EMPLOYEE DETAILS MODAL -->
+  <div class="modal-overlay"
+       *ngIf="selectedEmployee as employee"
+       (click)="closeEmployeeDetails()">
+
+    <section class="modal"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Employee details"
+             (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div class="modal-profile">
+          <div class="avatar avatar-lg">{{ employee.fullName.charAt(0).toUpperCase() }}</div>
+          <div>
+            <h2>{{ employee.fullName }}</h2>
+            <span class="code">{{ employee.employeeCode }}</span>
+          </div>
+        </div>
+
+        <button type="button"
+                class="close-btn"
+                aria-label="Close"
+                (click)="closeEmployeeDetails()">
+          ×
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="details-grid">
+          <div class="detail-item">
+            <label>Email</label>
+            <strong>{{ employee.email }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Mobile Number</label>
+            <strong>{{ employee.mobileNumber || 'Not specified' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Location</label>
+            <strong>{{ employee.location || 'Not specified' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Training</label>
+            <strong>
+              {{ employee.trainingName || 'Not specified' }}
+              <small *ngIf="employee.trainingCompletedOn">
+                · {{ employee.trainingCompletedOn | date:'dd MMM yyyy' }}
+              </small>
+            </strong>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h3>Technical Skills</h3>
+          <div class="tags">
+            <span class="tag" *ngFor="let skill of employee.skills">{{ skill }}</span>
+            <span class="muted" *ngIf="!employee.skills?.length">No skills added</span>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h3>Shortlisted Projects</h3>
+          <div class="shortlist" *ngIf="employee.shortlistedProjects?.length">
+            <div class="shortlist-item" *ngFor="let project of employee.shortlistedProjects">
+              <span class="shortlist-name">{{ project.projectName }}</span>
+              <span class="badge">{{ project.status }}</span>
+            </div>
+          </div>
+          <p class="muted" *ngIf="!employee.shortlistedProjects?.length">
+            No shortlisted projects.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" (click)="closeEmployeeDetails()">
+          Close
+        </button>
+      </div>
+
+    </section>
+  </div>
+
+</div>
