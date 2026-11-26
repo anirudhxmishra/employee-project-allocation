@@ -1,0 +1,493 @@
+<div class="allocations-page">
+
+  <!-- PAGE HEADER -->
+  <header class="page-header">
+    <div class="page-title">
+      <h1>Allocations</h1>
+      <p>Manage employee project assignments and releases.</p>
+    </div>
+
+    <button type="button" class="btn btn-primary" (click)="openAddModal()">
+      <span class="btn-plus">+</span> New Allocation
+    </button>
+  </header>
+
+  <!-- MESSAGES -->
+  <div class="alert success-alert" role="status" *ngIf="successMessage">
+    <span>{{ successMessage }}</span>
+    <button type="button" aria-label="Dismiss" (click)="clearMessages()">×</button>
+  </div>
+
+  <div class="alert error-alert" role="alert" *ngIf="errorMessage && !showAddModal">
+    <span>{{ errorMessage }}</span>
+    <button type="button" aria-label="Dismiss" (click)="clearMessages()">×</button>
+  </div>
+
+  <!-- SUMMARY -->
+  <section class="summary-bar" aria-label="Summary">
+    <div class="summary-item">
+      <span class="summary-label">Total Allocations</span>
+      <strong>{{ allocations.length }}</strong>
+      <small>All allocation records</small>
+    </div>
+
+    <div class="summary-item">
+      <span class="summary-label">Active</span>
+      <strong class="text-green">{{ activeCount }}</strong>
+      <small>Currently assigned</small>
+    </div>
+
+    <div class="summary-item">
+      <span class="summary-label">Released</span>
+      <strong class="text-slate">{{ releasedCount }}</strong>
+      <small>Completed assignments</small>
+    </div>
+
+    <div class="summary-item">
+      <span class="summary-label">Employees Allocated</span>
+      <strong>{{ totalEmployeesAllocated }}</strong>
+      <small>Unique active employees</small>
+    </div>
+  </section>
+
+  <!-- FILTERS -->
+  <section class="card filter-panel">
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input type="text"
+             placeholder="Search employee, code, project or role"
+             aria-label="Search allocations"
+             [(ngModel)]="searchTerm"
+             (ngModelChange)="onFilterChange()" />
+    </div>
+
+    <select aria-label="Filter by status"
+            [(ngModel)]="statusFilter"
+            (ngModelChange)="onFilterChange()">
+      <option value="All">All Statuses</option>
+      <option value="Active">Active</option>
+      <option value="Released">Released</option>
+    </select>
+
+    <select aria-label="Filter by project"
+            [(ngModel)]="projectFilter"
+            (ngModelChange)="onFilterChange()">
+      <option value="All">All Projects</option>
+      <option *ngFor="let project of projects; trackBy: trackByProject"
+              [value]="project.projectId">
+        {{ project.projectName }}
+      </option>
+    </select>
+
+    <button type="button"
+            class="link-btn"
+            (click)="clearFilters()"
+            [disabled]="!hasActiveFilters">
+      Clear
+    </button>
+
+    <button type="button"
+            class="btn btn-outline"
+            (click)="loadAllocations()"
+            [disabled]="loading">
+      <span class="btn-icon" [class.spinning]="loading">↻</span>
+      Refresh
+    </button>
+  </section>
+
+  <!-- TABLE -->
+  <section class="card table-container">
+
+    <div class="table-heading">
+      <h2>Allocation Records</h2>
+      <span class="result-count">{{ filteredAllocations.length }} records found</span>
+    </div>
+
+    <div class="state-box" *ngIf="loading">
+      <div class="loader"></div>
+      <p>Loading allocations...</p>
+    </div>
+
+    <div class="state-box" *ngIf="!loading && filteredAllocations.length === 0">
+      <div class="empty-icon">📋</div>
+      <h3>No allocations found</h3>
+      <p>Try changing your filters or create a new allocation.</p>
+    </div>
+
+    <div class="table-scroll" *ngIf="!loading && filteredAllocations.length">
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Project</th>
+            <th>Role</th>
+            <th>Allocated</th>
+            <th>Released</th>
+            <th>Status</th>
+            <th>Allocated By</th>
+            <th class="col-action">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let allocation of paginatedAllocations; trackBy: trackByAllocation">
+
+            <td>
+              <div class="employee-cell">
+                <div class="avatar">{{ getInitial(allocation.employeeName) }}</div>
+                <div class="cell-stack">
+                  <strong>{{ allocation.employeeName }}</strong>
+                  <span class="code">{{ allocation.employeeCode }}</span>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <div class="cell-stack">
+                <strong>{{ allocation.projectName }}</strong>
+                <small>ID: {{ allocation.projectId }}</small>
+              </div>
+            </td>
+
+            <td>{{ allocation.role }}</td>
+
+            <td class="nowrap">{{ formatShortDate(allocation.allocationDate) }}</td>
+
+            <td class="nowrap">{{ formatShortDate(allocation.releaseDate) }}</td>
+
+            <td>
+              <span class="status"
+                    [class.status-active]="allocation.isActive"
+                    [class.status-released]="!allocation.isActive">
+                {{ allocation.isActive ? 'Active' : 'Released' }}
+              </span>
+            </td>
+
+            <td>{{ allocation.allocatedBy }}</td>
+
+            <td class="col-action">
+              <div class="action-buttons">
+                <button type="button"
+                        class="row-btn"
+                        title="View details"
+                        (click)="openDetails(allocation)">
+                  View
+                </button>
+
+                <button type="button"
+                        class="row-btn"
+                        title="Employee history"
+                        (click)="openEmployeeHistory(allocation)">
+                  History
+                </button>
+
+                <button type="button"
+                        class="row-btn danger"
+                        *ngIf="allocation.isActive"
+                        [disabled]="releasingId === allocation.allocationId"
+                        (click)="releaseAllocation(allocation)">
+                  {{ releasingId === allocation.allocationId ? 'Releasing...' : 'Release' }}
+                </button>
+              </div>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAGINATION -->
+    <div class="pagination" *ngIf="!loading && filteredAllocations.length > pageSize">
+      <span>
+        Showing {{ pageStart }}–{{ pageEnd }} of {{ filteredAllocations.length }}
+      </span>
+
+      <div class="pager">
+        <button type="button"
+                [disabled]="currentPage === 1"
+                (click)="changePage(currentPage - 1)">
+          Previous
+        </button>
+
+        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
+
+        <button type="button"
+                [disabled]="currentPage === totalPages"
+                (click)="changePage(currentPage + 1)">
+          Next
+        </button>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<!-- ADD ALLOCATION MODAL -->
+<div class="modal-overlay" *ngIf="showAddModal" (click)="closeModals()">
+  <div class="modal"
+       role="dialog"
+       aria-modal="true"
+       aria-label="New allocation"
+       (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div>
+        <h2>New Allocation</h2>
+        <p>Assign an available employee to a project.</p>
+      </div>
+      <button type="button" class="close-btn" aria-label="Close" (click)="closeModals()">×</button>
+    </div>
+
+    <form #allocForm="ngForm" (ngSubmit)="createAllocation()">
+
+      <div class="modal-body">
+
+        <div class="alert error-alert" role="alert" *ngIf="errorMessage">
+          <span>{{ errorMessage }}</span>
+          <button type="button" aria-label="Dismiss" (click)="errorMessage = ''">×</button>
+        </div>
+
+        <div class="form-group">
+          <label for="projectId">Project <span class="req">*</span></label>
+          <select id="projectId"
+                  name="projectId"
+                  [(ngModel)]="newAllocation.projectId"
+                  (ngModelChange)="onProjectSelected()"
+                  required>
+            <option [ngValue]="0" disabled>Select project</option>
+            <option *ngFor="let project of projects; trackBy: trackByProject"
+                    [ngValue]="project.projectId">
+              {{ project.projectName }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="employeeCode">Available Employee <span class="req">*</span></label>
+          <select id="employeeCode"
+                  name="employeeCode"
+                  [(ngModel)]="newAllocation.employeeCode"
+                  required
+                  [disabled]="!newAllocation.projectId || loadingEmployees">
+            <option value="">
+              {{ loadingEmployees ? 'Loading employees...' : 'Select employee' }}
+            </option>
+            <option *ngFor="let employee of availableEmployees"
+                    [value]="employee.employeeCode">
+              {{ employee.fullName }} ({{ employee.employeeCode }})
+            </option>
+          </select>
+
+          <small class="field-error"
+                 *ngIf="newAllocation.projectId && !loadingEmployees && availableEmployees.length === 0">
+            No available employees found for this project.
+          </small>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="role">Role <span class="req">*</span></label>
+            <input id="role"
+                   type="text"
+                   name="role"
+                   [(ngModel)]="newAllocation.role"
+                   placeholder="e.g. Full Stack Developer"
+                   required />
+          </div>
+
+          <div class="form-group">
+            <label for="allocatedBy">Allocated By <span class="req">*</span></label>
+            <input id="allocatedBy"
+                   type="text"
+                   name="allocatedBy"
+                   [(ngModel)]="newAllocation.allocatedBy"
+                   required />
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" (click)="closeModals()">
+          Cancel
+        </button>
+
+        <button type="submit"
+                class="btn btn-primary"
+                [disabled]="saving || allocForm.invalid || !availableEmployees.length">
+          {{ saving ? 'Allocating...' : 'Confirm Allocation' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ALLOCATION DETAILS MODAL -->
+<div class="modal-overlay" *ngIf="showDetailsModal" (click)="closeModals()">
+  <div class="modal modal-md"
+       role="dialog"
+       aria-modal="true"
+       aria-label="Allocation details"
+       (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div>
+        <h2>Allocation Details</h2>
+        <p>Allocation #{{ selectedAllocation?.allocationId }}</p>
+      </div>
+      <button type="button" class="close-btn" aria-label="Close" (click)="closeModals()">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedAllocation">
+      <div class="details-grid">
+        <div class="detail-item">
+          <label>Employee</label>
+          <strong>{{ selectedAllocation.employeeName }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <label>Employee Code</label>
+          <strong>{{ selectedAllocation.employeeCode }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <label>Project</label>
+          <strong>{{ selectedAllocation.projectName }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <label>Role</label>
+          <strong>{{ selectedAllocation.role }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <label>Allocation Date</label>
+          <strong>{{ formatDate(selectedAllocation.allocationDate) }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <label>Release Date</label>
+          <strong>{{ formatDate(selectedAllocation.releaseDate) }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <label>Allocated By</label>
+          <strong>{{ selectedAllocation.allocatedBy }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <label>Status</label>
+          <span class="status"
+                [class.status-active]="selectedAllocation.isActive"
+                [class.status-released]="!selectedAllocation.isActive">
+            {{ selectedAllocation.isActive ? 'Active' : 'Released' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" (click)="closeModals()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- RELEASE CONFIRMATION MODAL -->
+<div class="modal-overlay" *ngIf="showReleaseModal" (click)="cancelRelease()">
+  <div class="modal modal-sm confirm-modal"
+       role="alertdialog"
+       aria-modal="true"
+       aria-labelledby="releaseTitle"
+       (click)="$event.stopPropagation()">
+
+    <div class="modal-body confirm-body">
+      <div class="confirm-icon">!</div>
+
+      <h2 id="releaseTitle">Release employee?</h2>
+
+      <p>
+        Are you sure you want to release
+        <strong>{{ allocationToRelease?.employeeName }}</strong>
+        from
+        <strong>{{ allocationToRelease?.projectName }}</strong>?
+        The allocation will be marked as released today.
+      </p>
+    </div>
+
+    <div class="modal-footer confirm-footer">
+      <button type="button"
+              class="btn btn-outline"
+              [disabled]="releasingId !== null"
+              (click)="cancelRelease()">
+        Cancel
+      </button>
+
+      <button type="button"
+              class="btn btn-danger"
+              [disabled]="releasingId !== null"
+              (click)="confirmRelease()">
+        {{ releasingId !== null ? 'Releasing...' : 'Yes, Release' }}
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- EMPLOYEE HISTORY MODAL -->
+<div class="modal-overlay" *ngIf="showHistoryModal" (click)="closeModals()">
+  <div class="modal modal-md"
+       role="dialog"
+       aria-modal="true"
+       aria-label="Employee allocation history"
+       (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div>
+        <h2>Allocation History</h2>
+        <p>
+          {{ selectedAllocation?.employeeName }} ·
+          {{ selectedAllocation?.employeeCode }}
+        </p>
+      </div>
+      <button type="button" class="close-btn" aria-label="Close" (click)="closeModals()">×</button>
+    </div>
+
+    <div class="modal-body history-body">
+
+      <div class="state-box compact" *ngIf="loadingHistory">
+        <div class="loader"></div>
+        <p>Loading history...</p>
+      </div>
+
+      <div class="history-list" *ngIf="!loadingHistory && employeeHistory.length">
+        <div class="history-item" *ngFor="let item of employeeHistory">
+          <div class="history-info">
+            <strong>{{ item.projectName }}</strong>
+            <span>{{ item.role }}</span>
+            <small>
+              {{ formatShortDate(item.allocationDate) }}
+              →
+              {{ item.releaseDate ? formatShortDate(item.releaseDate) : 'Present' }}
+            </small>
+          </div>
+
+          <span class="status"
+                [class.status-active]="item.isActive"
+                [class.status-released]="!item.isActive">
+            {{ item.isActive ? 'Active' : 'Released' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="state-box compact" *ngIf="!loadingHistory && !employeeHistory.length">
+        <p>No allocation history found.</p>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" (click)="closeModals()">Close</button>
+    </div>
+  </div>
+</div>
