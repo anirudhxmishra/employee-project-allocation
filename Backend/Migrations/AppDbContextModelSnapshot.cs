@@ -22,7 +22,72 @@ namespace EmployeeProjectAllocation.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.Employee", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.ApplicationUser", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex")
+                        .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.Employee", b =>
                 {
                     b.Property<string>("EmployeeCode")
                         .HasMaxLength(8)
@@ -59,7 +124,7 @@ namespace EmployeeProjectAllocation.Migrations
                     b.ToTable("Employees");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.EmployeeSkill", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.EmployeeSkill", b =>
                 {
                     b.Property<string>("EmployeeCode")
                         .HasColumnType("nvarchar(8)");
@@ -74,7 +139,7 @@ namespace EmployeeProjectAllocation.Migrations
                     b.ToTable("EmployeeSkills");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.Project", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.Project", b =>
                 {
                     b.Property<int>("ProjectId")
                         .ValueGeneratedOnAdd()
@@ -121,7 +186,7 @@ namespace EmployeeProjectAllocation.Migrations
                     b.ToTable("Projects");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectAllocation", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.ProjectAllocation", b =>
                 {
                     b.Property<int>("AllocationId")
                         .ValueGeneratedOnAdd()
@@ -164,7 +229,7 @@ namespace EmployeeProjectAllocation.Migrations
                     b.ToTable("ProjectAllocations");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectCandidate", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.ProjectCandidate", b =>
                 {
                     b.Property<int>("CandidateId")
                         .ValueGeneratedOnAdd()
@@ -205,7 +270,7 @@ namespace EmployeeProjectAllocation.Migrations
                     b.ToTable("ProjectCandidates");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectSkill", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.ProjectSkill", b =>
                 {
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
@@ -220,7 +285,7 @@ namespace EmployeeProjectAllocation.Migrations
                     b.ToTable("ProjectSkills");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.Skill", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.Skill", b =>
                 {
                     b.Property<int>("SkillId")
                         .ValueGeneratedOnAdd()
@@ -241,15 +306,148 @@ namespace EmployeeProjectAllocation.Migrations
                     b.ToTable("Skills");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.EmployeeSkill", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
-                    b.HasOne("EmployeeProjectAllocation.Models.Employee", "Employee")
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex")
+                        .HasFilter("[NormalizedName] IS NOT NULL");
+
+                    b.ToTable("AspNetRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RoleId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetRoleClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserLogins", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetUserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.EmployeeSkill", b =>
+                {
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.Employee", "Employee")
                         .WithMany("EmployeeSkills")
                         .HasForeignKey("EmployeeCode")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EmployeeProjectAllocation.Models.Skill", "Skill")
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.Skill", "Skill")
                         .WithMany("EmployeeSkills")
                         .HasForeignKey("SkillId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -260,15 +458,15 @@ namespace EmployeeProjectAllocation.Migrations
                     b.Navigation("Skill");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectAllocation", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.ProjectAllocation", b =>
                 {
-                    b.HasOne("EmployeeProjectAllocation.Models.Employee", "Employee")
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("EmployeeProjectAllocation.Models.Project", "Project")
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -279,15 +477,15 @@ namespace EmployeeProjectAllocation.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectCandidate", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.ProjectCandidate", b =>
                 {
-                    b.HasOne("EmployeeProjectAllocation.Models.Employee", "Employee")
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("EmployeeProjectAllocation.Models.Project", "Project")
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -298,15 +496,15 @@ namespace EmployeeProjectAllocation.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.ProjectSkill", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.ProjectSkill", b =>
                 {
-                    b.HasOne("EmployeeProjectAllocation.Models.Project", "Project")
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EmployeeProjectAllocation.Models.Skill", "Skill")
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.Skill", "Skill")
                         .WithMany()
                         .HasForeignKey("SkillId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -317,12 +515,63 @@ namespace EmployeeProjectAllocation.Migrations
                     b.Navigation("Skill");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.Employee", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+                {
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.HasOne("EmployeeProjectAllocation.Backend.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.Employee", b =>
                 {
                     b.Navigation("EmployeeSkills");
                 });
 
-            modelBuilder.Entity("EmployeeProjectAllocation.Models.Skill", b =>
+            modelBuilder.Entity("EmployeeProjectAllocation.Backend.Models.Skill", b =>
                 {
                     b.Navigation("EmployeeSkills");
                 });
