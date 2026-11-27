@@ -1,11 +1,13 @@
 ﻿using EmployeeProjectAllocation.Backend.DTOs.ProjectSkills;
 using EmployeeProjectAllocation.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EmployeeProjectAllocation.Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "HR Admin")]
     public class ProjectSkillsController : ControllerBase
     {
         private readonly IProjectSkillService _projectSkillService;

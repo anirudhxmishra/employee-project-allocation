@@ -1,11 +1,13 @@
 ﻿using EmployeeProjectAllocation.Backend.DTOs.Allocations;
 using EmployeeProjectAllocation.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EmployeeProjectAllocation.Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "HR Admin")]
     public class AllocationsController : ControllerBase
     {
         private readonly IAllocationService _allocationService;
